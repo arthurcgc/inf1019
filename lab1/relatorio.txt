@@ -366,7 +366,7 @@ count: 280 - PID: 25452 - PID pai: 25451
 count: 281 - PID: 25452 - PID pai: 25451
 count: 282 - PID: 25452 - PID pai: 25451
 count: 283 - PID: 25452 - PID pai: 25451
-count: 284 - PID: 25452 - PID pai: 25451Exercícios61) Faça um programa em que três processos executam em paralelo as seguintes ações:Pai - Imprime os números de 0 a 99, com um intervalo de 1 segundo entre a impressão de cada número. Após imprimir todos os números, imprime a frase “Processo pai vai finalizar” e finaliza quando o filho terminar.Filho - Imprime os números de 100 a 199, com um intervalo de 2 segundo entre a impressão cada número. Antes de imprimir os números, imprime a frase “Filho foi criado”.Após imprimir todos os números, imprime a frase “processo filho vai finalizar” e finaliza quando o neto terminar.Neto - filho do processo Filho (ou seja, neto do processo Pai). Imprime os números de 200 a 299, com um intervalo de 3 segundos entre cada número. Antes de imprimir os números, imprime a frase “Neto foi criado”.Após imprimir todos os números, imprime a frase “processo neto vai finalizar” e finaliza o processo.Importante: Em cada printf os processos devem imprimir o seu pid e o pid do seu pai.DICA: A chamada ao sistema sleep(1) bloqueia o processo por 1 segund
+count: 284 - PID: 25452 - PID pai: 25451
 count: 285 - PID: 25452 - PID pai: 25451
 count: 286 - PID: 25452 - PID pai: 25451
 count: 287 - PID: 25452 - PID pai: 25451

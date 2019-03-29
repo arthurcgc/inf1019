@@ -1,0 +1,279 @@
+Arthur Cavalcante Gomes Coelho - 1313099
+
+Questão 1) O que acontece se alterarmos o local da chamada waitpid() no programa (para depois da printf).
+-------------------------------------------------------------------------------------------------------------------------------------------
+exemplo.c
+#include <stdio.h>
+#include <sys/shm.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <sys/wait.h>
+
+
+int main(int argc, char *argv[])
+{
+    int segmento, *p, id, pid, status;
+    // aloca a memória compartilhada
+    segmento = shmget(8764, sizeof(int), IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
+    // associa a memória compartilhada ao processo
+    p = (int *)shmat(segmento, 0, 0); // comparar o retorno com -1
+    *p = 8752;
+    if ((id = fork()) < 0)
+    {
+        puts("Erro na criação do novo processo");
+        exit(-2);
+    }
+    else if (id == 0)
+    {
+        *p += 5;
+        printf("Processo filho = %d\n", *p);
+    }
+    else
+    {
+        *p += 10;
+        printf("Processo pai = %d\n", *p);
+        pid = wait(&status);
+    }
+    // libera a memória compartilhada do processo
+    shmdt(p);
+    // libera a memória compartilhada
+    int i = shmctl(segmento, IPC_RMID, 0);
+    return 0;
+}
+-------------------------------------------------------------------------------------------------------------------------------------------
+COMPILAÇÃO E EXECUÇÃO
+gcc -g exemplo.c -o exemplo
+./exemplo
+-------------------------------------------------------------------------------------------------------------------------------------------
+RESULTADO
+Processo pai = 8767
+Processo filho = 8757
+-------------------------------------------------------------------------------------------------------------------------------------------
+CONCLUSÃO
+> O processo pai foi executado antes do processo filho. Gerando o output:
+Processo pai = 8762
+Processo filho = 8767
+O que é coerente, pois a chamada "wait()" obriga o processo pai a esperar a execução do processo filho para começar a sua própira execução.
+-------------------------------------------------------------------------------------------------------------------------------------------
+
+
+QUESTÃO 2) Faça um programa que: Leia uma mensagem do dia, crie uma memória compartilhada com a chave -> 8765, salve a mensagem na memória.
+	   Faça um outro programa que utilize a mesma chave (8765) e exiba a mensagem do dia para o usuário
+-------------------------------------------------------------------------------------------------------------------------------------------
+msg_dia.c
+#include <stdio.h>
+#include <sys/shm.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/wait.h>
+
+
+int main(int argc, char *argv[])
+{
+    int id, pid, status;
+    char *msg = (char*)malloc(256*sizeof(char));
+    int segmento;
+    int *p = (int*)malloc(sizeof(msg));
+
+    printf("Digite a msg do dia:\n");
+    scanf(" %[^\n]", msg);
+
+    
+    // aloca a memória compartilhada
+    segmento = shmget(8765, sizeof(char)*256, IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
+    // associa a memória compartilhada ao processo
+    p = (int *)shmat(segmento, 0, 0); // comparar o retorno com -1
+    strcpy((char*)p, msg);
+
+    return 0;
+}
+-------------------------------------------------------------------------------------------------------------------------------------------
+msg_dia2.c
+#include <stdio.h>
+#include <sys/shm.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/wait.h>
+
+
+int main(int argc, char const *argv[])
+{
+    int segmento, *p;
+
+    segmento = shmget(8765, sizeof(char)*256, IPC_EXCL | S_IRUSR | S_IWUSR);
+    p = (int*)shmat(segmento, 0, 0);
+
+    printf("%s\n", (char*) p);
+
+
+
+    // libera a memória compartilhada do processo
+    shmdt(p);
+    // libera a memória compartilhada
+    shmctl(segmento, IPC_RMID, 0);
+    return 0;
+}
+-------------------------------------------------------------------------------------------------------------------------------------------
+COMPILAÇÃO E EXECUÇÃO
+gcc -g msg_dia.c -o msg_dia
+gcc -g msg_dia2.c -o msg_dia2
+./msg_dia
+./msg_dia2
+-------------------------------------------------------------------------------------------------------------------------------------------
+RESULTADO
+(executando ./msg_dia)
+Digite a msg do dia:
+> Oi meu nome é arthur
+(executando ./msg_dia2)
+Oi meu nome é arthur
+-------------------------------------------------------------------------------------------------------------------------------------------
+CONCLUSÃO
+> O programa se comporta como esperado, primeiramente executamos o programa que cria e aloca o espaço para o segmento de memória e depois
+executamos o programa que recebe o espaço de memória alocado e imprime o conteúdo armazenado. É importante notar que é imperativo que se 
+execute o "msg_dia" antes do "msg_dia2" pois o "msg_dia2" é responsável por liberar a memória criada no "msg_dia". Se rodarmos o "msg_dia"
+duas vezes seguidas teríamos um problema de Segmentation Fault, pois estaríamos tentando alocar um endereço de memória que já havia sido
+criado e ainda por cima não será liberado até a execução do "msg_dia2".  
+-------------------------------------------------------------------------------------------------------------------------------------------
+
+
+QUESTÃO 3) Faça um programa paralelo para localizar uma chave em um vetor. Crie uma memória compartilhada com dados desordenados e a divida 
+pelo número de processos. Cada processo deve procurar o dado na sua área de memória e informar a posição onde o dado foi localizado.
+-------------------------------------------------------------------------------------------------------------------------------------------
+main.c
+#include <stdio.h>
+#include <sys/shm.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/wait.h>
+#include <time.h>
+
+
+int main(int argc, char *argv[])    
+{
+    int segmento, pid1, pid2;
+    int *p;
+    int count = 0;
+    int resp = 0;
+
+    // aloca a memória compartilhada
+    segmento = shmget(IPC_PRIVATE, sizeof(int)*1000, IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
+    // associa a memória compartilhada ao processo
+    p = (int *)shmat(segmento, 0, 0); // comparar o retorno com -1
+
+
+
+    srand(time(0));
+    for(int i =0; i < 1000; i++)
+    {
+        p[i] = rand() % 100;
+        if(p[i] == 99)
+            count ++;
+    }
+    printf("resposta esperada: %d\n", count);
+
+    pid1 = fork();
+    pid2 = fork();
+
+    if(pid1 > 0 && pid2 > 0)
+    {
+        //parent
+        printf("De [0,249]: ");
+        int *temp = &p[0];
+        for(int i = 0; i < 250; i++)
+        {
+            temp++;
+            if(*temp == 99)
+            {
+                resp++;
+                printf("%p - ", temp);
+            }
+        }
+
+    }
+
+    else if(pid1 == 0 && pid2 > 0)
+    {
+        //first child
+        printf("De [250,499]: ");
+        int *temp = &p[0]+250; // + elem*500;
+        for(int i = 0; i < 250; i++)
+        {
+            temp ++;
+            if(*temp == 99)
+            {
+                resp++;
+                printf("%p - ", temp);
+            }
+        }
+    }
+
+    else if(pid1 > 0 && pid2 == 0)
+    {
+        //second
+        printf("De [500, 749]: ");
+        int *temp = &p[0]+500; // + elem*500;
+        for(int i = 0; i < 250; i++)
+        {
+            temp ++;
+            if(*temp == 99)
+            {
+                resp++;
+                printf("%p - ", temp);
+            }
+        }
+    }
+
+    else if(pid1 == 0 && pid2 == 0)
+    {
+        //third child
+        printf("De [750, 1000]: ");
+        int *temp = &p[0]+750;
+        for(int i = 0; i <= 250; i++)
+        {
+            temp ++;
+            if(*temp == 99)
+            {
+                resp++;
+                printf("%p - ", temp);
+            }
+        }
+    }
+    
+
+    printf("Total: %d\n", resp);
+    
+    // libera a memória compartilhada do processo
+    shmdt(p);
+    // libera a memória compartilhada
+    shmctl(segmento, IPC_RMID, 0);
+    return 0;
+}
+-------------------------------------------------------------------------------------------------------------------------------------------
+COMPILAÇÃO E EXECUÇÃO
+gcc -g main.c -o main
+./main
+-------------------------------------------------------------------------------------------------------------------------------------------
+RESULTADO
+resposta esperada: 12
+De [0,249]: 0x7f7850311350 - 0x7f7850311384 - Total: 2
+De [500, 749]: 0x7f78503118ec - 0x7f78503118f0 - 0x7f78503119cc - 0x7f7850311a08 - 0x7f7850311b44 - Total: 5
+De [250,499]: 0x7f785031156c - Total: 1
+De [750, 1000]: 0x7f7850311cd0 - 0x7f7850311cf0 - 0x7f7850311e50 - 0x7f7850311f50 - Total: 4
+-------------------------------------------------------------------------------------------------------------------------------------------
+CONCLUSÃO
+> Criei um vetor de inteiros de tamanho 1000 e armazenei pseudo-randomicamente números de 0 a 100 no vetor, já que 1000 é um número 10 vezes
+maior do que 100 haverá grande repetição de números armazenados no vetor, a chave escolhida para a busca foi o número "99". Para checar o 
+funcionamento correto do programa resolvi, além de imprimir o que o enunciado do exercício pede (a área de memória que armazena o número 99 em cada iteração),
+que gostaria de saber quantas vezes o número 99 de fato aparece no vetor. A soma do output dos processos deve ser exatamente igual à primeira contagem de intâncias
+de 99 realizada na criação do vetor randomizado.
+> Rodando o programa e checando o output podemos observar que obtemos o resultado esperado. Durante a criação do vetor foram observadas 12 instâncias do número "99".
+Somando o total de cada linha do output, que representa a quarta parte do vetor, totalizando 1000 elementos, vemos que a soma dos totais dá exatamente 12 (2+5+1+4 = 12), logo,
+percorremos a memória de forma correta. O endereço das intancias do numero "99" também é impresso conforme pedido no enunciado.
+-------------------------------------------------------------------------------------------------------------------------------------------
