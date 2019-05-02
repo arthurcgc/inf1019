@@ -50,7 +50,7 @@ int linearHighest(int *v, int size)
 
 void solveWithThreads(int *v, int size)
 {
-    int threads_num = ceil(size/100);
+    int threads_num = abs(ceil(size/100));
     pthread_t threads[threads_num];
     highest = v[0];
 
@@ -72,6 +72,8 @@ int main(int argc, char const *argv[])
 {
     int v1[v1_size], v2[v2_size], v3[v3_size];
     int resp1, resp2, resp3;
+    clock_t start, end;
+    double cpu_time_ms;
 
     srand(time(NULL));
     generate_random_vector(v1);
@@ -82,31 +84,41 @@ int main(int argc, char const *argv[])
     resp2 = linearHighest(v2, v2_size);
     resp3 = linearHighest(v3, v3_size);
 
-    printf("v1 resposta sem threads: %d\n", resp1);
-    printf("\nv2 resposta sem threads: %d\n", resp2);
-    printf("\nv3 resposta sem threads: %d\n", resp3);
 
 
-    printf("----------------------------------------");
+    start = clock();
     solveWithThreads(v1, v1_size);
-    printf("\nv1 resposta com threads: %d\n", highest);
+    end = clock();
+    cpu_time_ms = ((double) (end - start) / (CLOCKS_PER_SEC)) * 1000;
+    printf("\nv1 resposta sem threads: %d\n", resp1);
+    printf("v1 resposta com threads: %d\n", highest);
     if(resp1 == highest)
-        printf("\nnumeros iguais (%d = %d)\n", resp1, highest);
+        printf("numeros iguais\n\nTempo de execução: %f ms\n", cpu_time_ms);
     highest = 0;
 
     printf("----------------------------------------");
+    start = clock();
     solveWithThreads(v2, v2_size);
-    printf("\nv2 resposta com threads: %d\n", highest);
+    end = clock();
+    cpu_time_ms = ((double) (end - start) / (CLOCKS_PER_SEC)) * 1000;
+    printf("\nv2 resposta sem threads: %d\n", resp2);
+    printf("v2 resposta com threads: %d\n", highest);
     if(resp2 == highest)
-        printf("\nnumeros iguais (%d = %d)\n", resp2, highest);
+        printf("numeros iguais\n\nTempo de execução: %f ms\n", cpu_time_ms);
     highest = 0;
 
     printf("----------------------------------------");
+    start = clock();
     solveWithThreads(v3, v3_size);
-    printf("\nv3 resposta com threads: %d\n", highest);
+    end = clock();
+    cpu_time_ms = ((double) (end - start) / (CLOCKS_PER_SEC)) * 1000;
+    printf("\nv3 resposta sem threads: %d\n", resp3);
+    printf("v2 resposta com threads: %d\n", highest);
     if(resp3 == highest)
-        printf("\nnumeros iguais (%d = %d)\n", resp3, highest);
+        printf("numeros iguais\n\nTempo de execução: %f ms\n", cpu_time_ms);
     highest = 0;
+    printf("----------------------------------------\n");
+
 
 
     return 0;
