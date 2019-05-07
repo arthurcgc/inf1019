@@ -16,12 +16,6 @@ typedef struct args
     int *v;
 } Args;
 
-typedef struct time
-{
-    time_t tv_sec;
-    time_t tv_nsec;
-} Time;
-
 int highest = 0;
 int lowest = 2147483647;
 
@@ -107,12 +101,13 @@ void solveWithThreads(int *v, int size)
 
 void ThreadResolve(int *v, int size, int high, int low)
 {
-    Time start, end;
+    struct timespec start, end;
     double cpu_time_ms;
+
     clock_gettime(CLOCK_MONOTONIC, &start);
     solveWithThreads(v, size);
     clock_gettime(CLOCK_MONOTONIC, &end);
-    cpu_time_ms = (double) (end.tv_nsec - start.tv_nsec)*MILLION/ (CLOCKS_PER_SEC);
+    cpu_time_ms = (double) (end.tv_nsec - start.tv_nsec)*MILLION;
     printf("\nmaior sem threads: %d\n", high);
     printf("menor sem threads: %d\n", low);
     printf("\nmaior com threads: %d\n", highest);
@@ -140,27 +135,16 @@ int main(int argc, char const *argv[])
 
     generate_random_vector(v3, v3_size);
 
-
-    start1 = clock();
     high1 = linearHighest(v1, v1_size);
     low1 = linearLowest(v1, v1_size);
-    stop1 = clock();
-    cpu_time1 = ((double) (stop1 - start1) / (CLOCKS_PER_SEC)) * 1000;
 
-    start2 = clock();
+
     high2 = linearHighest(v2, v2_size);
     low2 = linearLowest(v2, v2_size);
-    stop2 = clock();
-    cpu_time2 = ((double) (stop2 - start2) / (CLOCKS_PER_SEC)) * 1000;
 
-    start3 = clock();
     high3 = linearHighest(v3, v3_size);
     low3 = linearLowest(v3, v3_size);
-    stop3 = clock();
-    cpu_time3 = ((double) (stop3 - start3) / (CLOCKS_PER_SEC)) * 1000;
-    printf("linear time1: %f\nlinear time2: %f\nlinear time3: %f\n", cpu_time1, cpu_time2, cpu_time3);
-
-
+    
     ThreadResolve(v1, v1_size, high1, low1);
 
     ThreadResolve(v2, v2_size, high2, low2);
