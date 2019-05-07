@@ -6,7 +6,7 @@
 #include <sys/wait.h>
 #include <math.h>
 #include <time.h>
-#include<signal.h>
+#include <signal.h>
 
 #define v1_size 1000
 #define v2_size 4000
@@ -29,7 +29,7 @@ int create_rand_vector(int *v, int m)
 int get_highest(int *v, int limit)
 {
     int high_temp = 0;
-    for(int i = 0; i < v1_size; i++)
+    for(int i = 0; i < limit; i++)
     {
         if(v[i] > high_temp)
             high_temp = v[i];
@@ -37,26 +37,29 @@ int get_highest(int *v, int limit)
     return high_temp;
 }
 
+    clock_t start, end;
 
 int solveWithProcesses(int *v, int size, int threshold, int pid)
 {
     int cand = 0;
     int status;
     int highest = 0;
+    start = clock();
     if(pid == 0)
     {
-        cand = get_highest(v, threshold);
+        cand = get_highest(v, size);
         if(cand > highest)
             highest = cand;
     }
     else
     {
         //parent of pids[i]
-        cand = get_highest(v + threshold, threshold);
+        cand = get_highest(v + threshold, size);
         if(cand > highest)
             highest = cand;
     }
 
+    end = clock();
     return highest;
 }
 
@@ -69,6 +72,7 @@ int main(int argc, char *argv[])
     int threshold1 = abs((v1_size+24)/16);
     int threshold2 = abs((v2_size)/16);
     int threshold3 = abs((v3_size)/16);
+    double cpu_time_ms;
 
     // aloca a memória compartilhada
     segmento = shmget(IPC_PRIVATE, sizeof(int)*(v1_size+24), IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
@@ -94,9 +98,14 @@ int main(int argc, char *argv[])
             {
                 printf("\nanswer of #pid%d: %d\n", pids[i], rp);
                 kill(pids[i], SIGKILL);
+                end = clock();
+                cpu_time_ms = ((double) (end - start) / (CLOCKS_PER_SEC)) * 1000;
+                printf("Tempo de execução: %f\n", cpu_time_ms);
             }
         }
     }
+
+    
 
     // libera a memória compartilhada do processo
     shmdt(p1);
