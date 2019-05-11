@@ -7,9 +7,6 @@
 #include <sys/stat.h>
 #include <string.h>
 
-#define MAX_CHAR 16
-#define MAX_ITER 64
-
 union semun
 {
     int val; // valor do semáforo
@@ -54,52 +51,33 @@ int semaforoV(int semId)
     return 0;
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char const *argv[])
 {
     int segmento, *p, id, pid, status;
-    char *buffer = (char*)malloc(sizeof(char)*MAX_CHAR); 
+    char *letter;
     int semId;
+
     // aloca a memória compartilhada
-    segmento = shmget(IPC_PRIVATE, sizeof(char)*MAX_CHAR, IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
+    segmento = shmget(8732, sizeof(char*), IPC_EXCL | S_IRUSR | S_IWUSR);
     // associa a memória compartilhada ao processo
-    buffer = (char *)shmat(segmento, 0, 0); // comparar o retorno com -1
-    semId = semget(IPC_PRIVATE, 1, 0666 | IPC_CREAT);
+    letter = (char*)shmat(segmento, 0, 0); // comparar o retorno com -1
+    semId = semget(8752, 1, 0666);
     setSemValue(semId);
 
-    if ((id = fork()) < 0)
+    while(*letter != '.')
     {
-        puts("Erro na criação do novo processo");
-        exit(-2);
+        semaforoP(semId);
+        printf("%c\n", *letter + 1);
+        semaforoV(semId);
+        sleep(2);
     }
-    else if (id == 0)
-    {
-        // consumidor, aka filho
-        for(int i = 0; i < MAX_ITER; i++)
-        {
-            semaforoP(semId);
-            printf("%s\n", buffer);
-            memset(buffer, 0, sizeof(buffer));
-            semaforoV(semId);
-        }
-    }
-    else
-    {
-        // produtor, aka pai
-        for(int i = 0; i < MAX_ITER; i++)
-        {
-            semaforoP(semId);
-            for(int j = 0; j <= MAX_CHAR; j++)
-                buffer[j] = getchar();
-            
-            semaforoV(semId);
-        }
-    }
+
 
     delSemValue(semId);
     // libera a memória compartilhada do processo
-    //era p
-    shmdt(buffer);
+    shmdt(p);
     // libera a memória compartilhada
     int i = shmctl(segmento, IPC_RMID, 0);
+
     return 0;
 }
