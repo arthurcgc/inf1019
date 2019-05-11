@@ -123,10 +123,7 @@ int main(int argc, char const *argv[])
 {
     int v1[v1_size], v2[v2_size], v3[v3_size];
     int high1, high2, high3, low1, low2, low3;
-    double cpu_time1, cpu_time2, cpu_time3;
 
-    clock_t start1, start2, start3, stop1, stop2, stop3;
-    
     srand(time(NULL));
    
     generate_random_vector(v1, v1_size);
