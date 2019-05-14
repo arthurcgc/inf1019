@@ -39,6 +39,8 @@ Command *create_command(char *program_name, char *time_windows)
     parseTimeWindows(v, time_windows);
     for(int i = 0; i < 3; i++)
         c->time_sequence[i] = v[i];
+    
+    c->inx_time = 0;
     c->next = NULL;
 
     return c;

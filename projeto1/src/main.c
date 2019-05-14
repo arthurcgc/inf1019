@@ -1,10 +1,18 @@
+#define _POSIX_C_SOURCE 199309L
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <signal.h>
+#include <time.h>
+#include <sys/types.h> 
 #include "vector.h"
 
 #define line_cap 256
 #define command_cap 50
+#define DELTA 3
+
+short FLAG = 0;
 
 
 void printPrograms(Vector *v)
@@ -56,11 +64,65 @@ void ReadCommands(Vector *programs)
     }
 }
 
+void treatChild(int signal)
+{
+
+}
+
+void treatAlarm(int signal)
+{
+    FLAG = 1;
+    alarm(DELTA);
+}
+
+void executeProgram(Command *c)
+{
+    pid_t pid;
+    char buffer[3];
+    sprintf(buffer, "%d", c->time_sequence[c->inx_time]);
+    c->inx_time++;
+    char *parmList[] = {"program", buffer, NULL};
+
+    
+    execv(parmList[0], parmList);
+}
+
 int main(int argc, char const *argv[])
 {    
+    pid_t pid;
     Vector *programs = create_vector();
 
     ReadCommands(programs);
+
+    for(int i = 0; i < programs->size; i++)
+    {
+        pid = fork();
+        if(pid == 0)
+            break;
+    }
+    if(pid == 0)
+    {
+        for(int i = 0; i < 3; i++)
+        {
+            signal(SIGALRM, treatAlarm);
+            alarm(DELTA);
+            executeProgram(programs->curr);
+            if(FLAG == 1)
+            {
+                signal(SIGSTOP, NULL);
+                
+            }
+            kill(getppid(), SIGUSR1);
+            sleep(3);
+        }
+    }
+
+    else if(pid > 0)
+    {
+        signal(SIGCHLD, treatChild);
+    }
+    // executeProgram(programs->begin);
+
     printPrograms(programs);
 
 

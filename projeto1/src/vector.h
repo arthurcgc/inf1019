@@ -21,6 +21,7 @@ struct command
 {
     char program_name[line_cap];
     int time_sequence[3];
+    int inx_time;
     Command *next;
 };
 
