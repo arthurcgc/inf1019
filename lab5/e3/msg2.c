@@ -67,7 +67,7 @@ int main(int argc, char const *argv[])
     while(*letter != '.')
     {
         semaforoP(semId);
-        printf("%c\n", *letter + 1);
+        printf("%c\n", *letter);
         semaforoV(semId);
         sleep(2);
     }
