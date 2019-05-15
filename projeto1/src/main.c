@@ -6,13 +6,16 @@
 #include <signal.h>
 #include <time.h>
 #include <sys/types.h> 
+#include <errno.h>
+#include <sys/wait.h>
 #include "vector.h"
 
 #define line_cap 256
 #define command_cap 50
 #define DELTA 3
 
-short FLAG = 0;
+int ALARM_TRIGG = 0;
+int CHILD_TRIGG = 0;
 
 
 void printPrograms(Vector *v)
@@ -64,15 +67,14 @@ void ReadCommands(Vector *programs)
     }
 }
 
-void treatChild(int signal)
+void childHandler(int signal)
 {
-
+    CHILD_TRIGG = 1;
 }
 
-void treatAlarm(int signal)
+void alarmHandler(int signal)
 {
-    FLAG = 1;
-    alarm(DELTA);
+    ALARM_TRIGG = 1;
 }
 
 void executeProgram(Command *c)
@@ -87,14 +89,46 @@ void executeProgram(Command *c)
     execv(parmList[0], parmList);
 }
 
+void alarmSetUp(int pid, int delta)
+{
+    while(1)
+    {
+        if(ALARM_TRIGG)
+        {
+            printf("Alarm triggered!\n");
+            int result = waitpid(pid, NULL, WNOHANG);
+            if(result == 0)
+            {
+                // child still running so kill it
+                printf("stopping child\n");
+                kill(pid, SIGSTOP);
+                ALARM_TRIGG = 0;
+                CHILD_TRIGG = 0;
+                alarm(delta);
+                pause();
+            }
+            else
+            {
+                printf("alarm triggered but child exited normaly \n");
+                exit(1);
+            }
+        }
+        else if(CHILD_TRIGG)
+        {
+            kill(pid, SIGCONT);
+        }
+    }
+}
+
 int main(int argc, char const *argv[])
 {    
-    pid_t pid;
+    pid_t pid, child_pid;
     Vector *programs = create_vector();
 
     ReadCommands(programs);
+    programs->curr = programs->begin;
 
-    for(int i = 0; i < programs->size; i++)
+    for(int i = 0; i < programs->size+1; i++)
     {
         pid = fork();
         if(pid == 0)
@@ -102,29 +136,21 @@ int main(int argc, char const *argv[])
     }
     if(pid == 0)
     {
-        for(int i = 0; i < 3; i++)
-        {
-            signal(SIGALRM, treatAlarm);
-            alarm(DELTA);
-            executeProgram(programs->curr);
-            if(FLAG == 1)
-            {
-                signal(SIGSTOP, NULL);
-                
-            }
-            kill(getppid(), SIGUSR1);
-            sleep(3);
-        }
+        child_pid = pid;
+        executeProgram(programs->curr);
+        // programs->curr = programs->curr->next;
     }
+    signal(SIGALRM, alarmHandler);
+    signal(SIGCHLD, childHandler);
+    alarm(DELTA);
+    pause();
+    alarmSetUp(pid, DELTA);
 
-    else if(pid > 0)
+    if(pid > 0)
     {
-        signal(SIGCHLD, treatChild);
+        
     }
     // executeProgram(programs->begin);
-
-    printPrograms(programs);
-
 
     return 0;
 }
