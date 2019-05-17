@@ -20,9 +20,8 @@ struct vector
 struct command
 {
     char program_name[line_cap];
-    int time_sequence[10];
-    int time_sequence_tam;
-    int itime;
+    int time_sequence[3];
+    int inx_time;
     Command *next;
     Command *prvs;
 };

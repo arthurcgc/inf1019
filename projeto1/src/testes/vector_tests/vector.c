@@ -8,7 +8,7 @@ void stripTokens(char *s)
     int i;
     for (i = 0; *s != '\0'; i++)
     {
-        if(*s == '(' || *s == ')' || *s == ',' || *s == '\n')
+        if(*s == '(' || *s == ')' || *s == ',')
             *s = ' ';
         s++;
     }
@@ -21,21 +21,12 @@ void parseTimeWindows(int *v, char *s)
     stripTokens(s);
     int i = 0;
     char *sbuffer;
-    char n[line_cap];
-    int test = 0;
+    char n1[line_cap], n2[line_cap], n3[line_cap];
 
-    for(int i = 0;*s!='\0';i++)
-    {
-        while(*s == ' ')
-            s++;
-        test = sscanf(s, "%s", n);
-        if(test == -1)
-            break;
-        *(v+i) = atoi(n);
-        while(*s == ' ')
-            s++;
-        s++;
-    }
+    sscanf(s, "%s %s %s", n1, n2, n3);
+    v[0] = atoi(n1);
+    v[1] = atoi(n2);
+    v[2] = atoi(n3);
 }
 
 /*end of parsing functions*/
@@ -44,18 +35,12 @@ Command *create_command(char *program_name, char *time_windows)
 {
     Command *c = (Command*)malloc(sizeof(Command));
     strcpy(c->program_name, program_name);
-    int v[10];
-    int i = 0;
-    parseTimeWindows(c->time_sequence, time_windows);
-    for(i;;i++)
-    {
-        if(c->time_sequence[i] == 0)
-            break;
-    }
-
-    c->time_sequence_tam = i;
-
-    c->itime = 0;
+    int v[3];
+    parseTimeWindows(v, time_windows);
+    for(int i = 0; i < 3; i++)
+        c->time_sequence[i] = v[i];
+    
+    c->inx_time = 0;
     c->next = NULL;
     c->prvs = NULL;
 
@@ -102,7 +87,7 @@ void shallowCopy(Command *dest, Command *source)
         dest->time_sequence[i] = source->time_sequence[i];
     dest->next = source->next;
     dest->prvs = source->prvs;
-    dest->itime = source->itime;
+    dest->inx_time = source->inx_time;
 }
 
 Command *pop_curr(Vector *v)

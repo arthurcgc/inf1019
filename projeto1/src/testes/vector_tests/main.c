@@ -12,7 +12,7 @@
 
 #define line_cap 256
 #define command_cap 50
-#define quantum 3
+#define DELTA 3
 
 int ALARM_TRIGG = 0;
 int CHILD_TRIGG = 0;
@@ -20,16 +20,12 @@ int CHILD_TRIGG = 0;
 
 void printPrograms(Vector *v)
 {
-    Command *curr = v->begin;
-    for(int i = 0; i < v->size; i++)
+    v->curr = v->begin;
+    for(int i = 0; i < size(v); i++)
     {
-        printf("%s (", curr->program_name);fflush(stdout);
-        for(int j = 0; j < curr->time_sequence_tam-1; j++)
-        {
-            printf("%d, ", curr->time_sequence[j]);
-        }
-        printf("%d)\n", curr->time_sequence[curr->time_sequence_tam-1]);
-        curr = curr->next;
+        printf("%s (%d, %d, %d)\n", v->curr->program_name, v->curr->time_sequence[0],
+        v->curr->time_sequence[1], v->curr->time_sequence[2]);
+        v->curr = v->curr->next;
     }
 }
 
@@ -49,7 +45,8 @@ void ReadCommands(Vector *programs)
                 continue;
             if(strcmp(line, "end") == 0)
             {
-                return;
+                end = 1;
+                break;
             }
             if(line[0] != '(')
             {
@@ -58,7 +55,7 @@ void ReadCommands(Vector *programs)
             else if(line[0] == '(')
             {
                 strcat(time_windows, line);
-                fgets(line, line_cap, stdin);
+                fgets(line, sizeof(line), stdin);
                 strcat(time_windows, line);
             }
         }
@@ -70,13 +67,25 @@ void ReadCommands(Vector *programs)
     }
 }
 
+void childHandler(int signal)
+{
+    CHILD_TRIGG = 1;
+}
+
+void alarmHandler(int signal)
+{
+    ALARM_TRIGG = 1;
+}
+
 void executeProgram(Command *c)
 {
     pid_t pid;
     char buffer[3];
-    sprintf(buffer, "%d", c->time_sequence[c->itime]);
-    c->itime++;
-    char *parmList[] = {"program", buffer, NULL};    
+    sprintf(buffer, "%d", c->time_sequence[c->inx_time]);
+    c->inx_time++;
+    char *parmList[] = {"program", buffer, NULL};
+
+    
     execv(parmList[0], parmList);
 }
 
@@ -87,38 +96,12 @@ int main(int argc, char const *argv[])
     Vector *line1 = create_vector();
 
     ReadCommands(line1);
+    line1->curr = line1->begin;
     line1->curr = line1->begin->next;
-    pop_curr(line1);
+    Command *c = pop_curr(line1);
+    printf("%s (%d, %d, %d)\n", c->program_name, c->time_sequence[0],
+       c->time_sequence[1], c->time_sequence[2]);
     printPrograms(line1);
 
-
-    // line1->curr = line1->begin;
-    /*
-    for(int i = 0; i < line1->size+1; i++)
-    {
-        pid = fork();
-        if(pid == 0)
-            break;
-    }
-    if(pid == 0)
-    {
-        child_pid = pid;
-        executeProgram(line1->curr);
-        line1->curr = line1->curr->next;
-        if(line1->curr == NULL)
-        {
-            // chegou ao fim da lista
-            line1->curr = line1->begin;
-            // other commands
-
-        }
-    }
-
-    if(pid > 0)
-    {
-        
-    }
-    // executeProgram(line1->begin);
-    */
     return 0;
 }
