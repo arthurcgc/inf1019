@@ -82,7 +82,7 @@ void executeProgram(Command *c)
 int main(int argc, char const *argv[])
 {    
     pid_t pid;
-    int semId, segment, *child_pid;
+    int semId, segment, *child_pid, status;
     Vector *line1;
 
     // aloca a memória compartilhada
@@ -112,13 +112,26 @@ int main(int argc, char const *argv[])
         {
             *child_pid = getpid();
             //making sure the father doesn't access the wrong child pid
-            printf("entered child process pid: %d\n", getpid());
+            printf("entered child process pid: %d\nExecuting program: %s...\n", getpid(), line1->curr->program_name);
             executeProgram(line1->curr);
         }
 
         if(pid > 0)
         {
-            sleep(quantum);
+            //child_status == 0 -> still running
+            int child_status, start = 0;
+            while(start < quantum)
+            {
+                sleep(1);
+                start++;
+                child_status = waitpid(*child_pid, &status, WNOHANG);
+                if(child_status == *child_pid)
+                {
+                    // I/O process
+                    printf("Child is I/O bound\n");
+                    exit(0);
+                }
+            }
             printf("entered father, pid = %d\n", getpid());
             printf("stopping child pid = %d\n", *child_pid);
             kill(*child_pid, SIGSTOP);
@@ -128,6 +141,10 @@ int main(int argc, char const *argv[])
             {
                 printf("program name: %s\n", line1->curr->program_name);
                 printf("indice da rajada: %d\n", line1->curr->itime);
+                line1->curr->time_sequence[line1->curr->itime] -= quantum;
+                if(line1->curr->time_sequence[line1->curr->itime] < 0)
+                    line1->curr->time_sequence[line1->curr->itime] = 0;
+                printf("tempo restante da rajada = %ds\n", line1->curr->time_sequence[line1->curr->itime]);
                 send2back(line1);
             }
             else
