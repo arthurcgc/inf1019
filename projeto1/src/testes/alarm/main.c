@@ -6,8 +6,6 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
-int ALARM_TRIGG = 0;
-int CHILD_TRIGG = 0;
 
 void executeProgram()
 {

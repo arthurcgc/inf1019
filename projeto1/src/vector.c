@@ -103,6 +103,8 @@ void shallowCopy(Command *dest, Command *source)
     dest->next = source->next;
     dest->prvs = source->prvs;
     dest->itime = source->itime;
+    dest->time_sequence_tam = source->time_sequence_tam;
+    dest->pid = source->pid;
 }
 
 Command *pop_curr(Vector *v)
@@ -113,6 +115,33 @@ Command *pop_curr(Vector *v)
     v->curr->prvs->next = v->curr->next;
 
     v->size--;
-    free(v->curr);
+    if(v->curr == v->begin)
+    {
+        if(v->curr->next != NULL)
+            v->begin = v->curr->next;
+    }
+    if(v->curr == v->end)
+        return NULL;
+    
     return ret;
+}
+
+void send2back(Vector *v)
+{
+    if(v->curr == v->end)
+        return;
+    /*
+        a->b->c
+        b->c->a
+    */
+   //fazendo com que b seja o primeiro
+    v->curr->next->prvs = NULL;
+    v->curr->next = v->begin;
+    // próximo de c é a
+    v->end->next = v->curr;
+    // anterior de a é c
+    v->curr->prvs = v->end;
+    v->end = v->curr;
+
+
 }

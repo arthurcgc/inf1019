@@ -9,13 +9,12 @@
 #include <errno.h>
 #include <sys/wait.h>
 #include "vector.h"
+#include "semaforo.h"
 
 #define line_cap 256
 #define command_cap 50
 #define quantum 3
 
-int ALARM_TRIGG = 0;
-int CHILD_TRIGG = 0;
 
 
 void printPrograms(Vector *v)
@@ -75,7 +74,6 @@ void executeProgram(Command *c)
     pid_t pid;
     char buffer[3];
     sprintf(buffer, "%d", c->time_sequence[c->itime]);
-    c->itime++;
     char *parmList[] = {"program", buffer, NULL};    
     execv(parmList[0], parmList);
 }
@@ -83,42 +81,63 @@ void executeProgram(Command *c)
 
 int main(int argc, char const *argv[])
 {    
-    pid_t pid, child_pid;
-    Vector *line1 = create_vector();
+    pid_t pid;
+    int semId, segment, *child_pid;
+    Vector *line1;
 
+    // aloca a memória compartilhada
+    segment = shmget(IPC_PRIVATE, sizeof(int), IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
+    // associa a memória compartilhada ao processo
+    child_pid = (int*)shmat(segment, 0, 0); // comparar o retorno com -1
+    semId = semget(IPC_PRIVATE, 1, 0666 | IPC_CREAT);
+    setSemValue(semId);
+
+    //creating vector
+    line1 = create_vector();
     ReadCommands(line1);
-    line1->curr = line1->begin->next;
-    pop_curr(line1);
     printPrograms(line1);
 
-
-    // line1->curr = line1->begin;
-    /*
-    for(int i = 0; i < line1->size+1; i++)
+    while(line1->size > 0)
     {
-        pid = fork();
-        if(pid == 0)
-            break;
-    }
-    if(pid == 0)
-    {
-        child_pid = pid;
-        executeProgram(line1->curr);
-        line1->curr = line1->curr->next;
-        if(line1->curr == NULL)
+        // initializing line head
+        for(int i = 0; i < line1->size; i++)
         {
-            // chegou ao fim da lista
             line1->curr = line1->begin;
-            // other commands
+            printf("programa corrente = %s\n", line1->curr->program_name);
+            pid = fork();
+            if(pid == 0)
+                break;
+        }
+        if(pid == 0)
+        {
+            *child_pid = getpid();
+            //making sure the father doesn't access the wrong child pid
+            printf("entered child process pid: %d\n", getpid());
+            executeProgram(line1->curr);
+        }
 
+        if(pid > 0)
+        {
+            sleep(quantum);
+            printf("entered father, pid = %d\n", getpid());
+            printf("stopping child pid = %d\n", *child_pid);
+            kill(*child_pid, SIGSTOP);
+            
+            // envia para o final da fila
+            if ( line1->curr->itime < line1->curr->time_sequence_tam)
+            {
+                printf("program name: %s\n", line1->curr->program_name);
+                printf("indice da rajada: %d\n", line1->curr->itime);
+                send2back(line1);
+            }
+            else
+            {
+                // rajadas esgotadas, hora de remover do vetor
+                pop_curr(line1);
+            }
         }
     }
 
-    if(pid > 0)
-    {
-        
-    }
-    // executeProgram(line1->begin);
-    */
+    delSemValue(semId);
     return 0;
 }

@@ -23,6 +23,7 @@ struct command
     int time_sequence[10];
     int time_sequence_tam;
     int itime;
+    pid_t pid;
     Command *next;
     Command *prvs;
 };
@@ -32,3 +33,4 @@ void push_back(Vector *v, Command *c);
 Vector *create_vector();
 int size(Vector *v);
 Command *pop_curr(Vector *v);
+void send2back(Vector *v);
