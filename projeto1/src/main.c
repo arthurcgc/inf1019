@@ -85,6 +85,7 @@ void firstExecution(Vector *line1, pid_t *fila1,  pid_t *fila2, pid_t *fila3)
                     //processo é I/O -> manda pra fila 1
                     fila1[i] = *child_pid;
                     line1->curr = line1->curr->next;
+                    break;
                 }
             }
             if(stopped > 0)
