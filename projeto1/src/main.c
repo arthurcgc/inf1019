@@ -15,6 +15,17 @@
 #define command_cap 50
 #define quantum 3
 
+int IO_FLAG = 0;
+
+char *my_itoa(int num, char *str)
+{
+        if(str == NULL)
+        {
+                return NULL;
+        }
+        sprintf(str, "%d", num);
+        return str;
+}
 
 
 void printPrograms(Vector *v)
@@ -71,13 +82,27 @@ void ReadCommands(Vector *programs)
 
 void executeProgram(Command *c)
 {
+    int i = 1;
     pid_t pid;
-    char buffer[3];
-    sprintf(buffer, "%d", c->time_sequence[c->itime]);
-    char *parmList[] = {"program", buffer, NULL};    
-    execv(parmList[0], parmList);
+    char *buffer[c->time_sequence_tam+2];
+    buffer[0] = "program";
+    for(; i < c->time_sequence_tam+1; i++)
+    {
+        char temp[2];
+        // sprintf(temp, "%d", time_sequence[i-1]);
+        my_itoa(c->time_sequence[i-1], temp);
+        buffer[i] = (char*)malloc(sizeof(char)*2);
+        strcpy(buffer[i], temp);
+        // printf("buffer[%d] = %s\n", i ,buffer[i]);
+    }
+    // printf("adding NULL\n\n");
+    buffer[i] = (char*)malloc(sizeof(char)*2);
+    buffer[i] = NULL;
+    // char *parmList[] = {"program", buffer, NULL};    
+    execv("program", buffer);
 }
 
+void w4IO(int signal);
 
 int main(int argc, char const *argv[])
 {    
@@ -103,60 +128,49 @@ int main(int argc, char const *argv[])
         printf("line1 size: %d\n", line1->size);
         line1->curr = line1->begin;
         printf("programa corrente = %s\n", line1->curr->program_name);
+        signal(SIGCHLD, w4IO);
         pid = fork();
 /*         if(pid == 0)
             break; */
         if(pid == 0)
         {
+            IO_FLAG = 0;
             *child_pid = getpid();
             //making sure the father doesn't access the wrong child pid
             printf("entered child process pid: %d\nExecuting program: %s...\n", getpid(), line1->curr->program_name);
             executeProgram(line1->curr);
         }
-        // loop até completar uma rajada
+        
         while(1)
         {
+            IO_FLAG = 0;
             kill(*child_pid, SIGCONT);
             if(pid > 0)
             {
-                //child_status == 0 -> still running
-                int child_status, start = 0;
-                int flag_io = 0;
-                while(start < quantum)
+                printf("entered father, pid = %d\n", getpid());
+                //kill(*child_pid, SIGCONT);
+                for(int start = 0; start < quantum; start++)
                 {
                     sleep(1);
-                    start++;
-                    child_status = waitpid(*child_pid, &status, WNOHANG);
-                    if(child_status == *child_pid)
+                    if(IO_FLAG)
                     {
-                        // I/O process e fim da rajada
-                        printf("Child is I/O bound\n");
-                        flag_io = 1;
-                        printf("rajada[%d] chegou ao fim\n\n", line1->curr->itime);
+                        printf("[I/O BOUND] rajada[%d] chegou ao fim\n\n", line1->curr->itime);
                         line1->curr->itime++;
-                        //acabaram as rajadas
                         if(line1->curr->itime == line1->curr->time_sequence_tam)
                         {
                             pop_curr(line1);
                             break;
                         }
-                        else
-                        {
-                            // pedido no enunciado
-                            sleep(3);
-                            send2back(line1);
-                        }
+                        send2back(line1);
+                        break;
                     }
                 }
-                if(flag_io)
+                if(IO_FLAG)
                 {
-                    flag_io = 0;
-                    break;
+                    continue;
                 }
-                printf("entered father, pid = %d\n", getpid());
                 printf("[CPU BOUND] stopping child pid = %d\n", *child_pid);
                 kill(*child_pid, SIGSTOP);
-                
                 // envia para o final da fila
                 if ( line1->curr->itime < line1->curr->time_sequence_tam)
                 {
@@ -164,23 +178,19 @@ int main(int argc, char const *argv[])
                     if(line1->curr->time_sequence[line1->curr->itime] <= 0)
                     {
                         printf("rajada[%d] chegou ao fim\n\n", line1->curr->itime);
+                        line1->curr->time_sequence[line1->curr->itime] = 0;
                         line1->curr->itime++;
                         if(line1->curr->itime == line1->curr->time_sequence_tam)
                         {
                             pop_curr(line1);
                             break;
                         }
-                        line1->curr->time_sequence[line1->curr->itime] = 0;
-                        break;
                     }
                     else
-                        printf("tempo restante da rajada = %ds\n\n", line1->curr->time_sequence[line1->curr->itime]);
+                        printf("tempo restante da rajada[%d] = %ds\n\n",line1->curr->itime
+                        ,line1->curr->time_sequence[line1->curr->itime]);
+
                     send2back(line1);
-                }
-                else
-                {
-                    // rajadas esgotadas, hora de remover do vetor
-                    pop_curr(line1);
                 }
             }
         }
@@ -188,4 +198,12 @@ int main(int argc, char const *argv[])
 
     delSemValue(semId);
     return 0;
+}
+
+
+
+void w4IO(int signal)
+{
+    printf("entered Handler\n");
+    IO_FLAG = 1;
 }
