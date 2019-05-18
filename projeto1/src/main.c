@@ -102,109 +102,103 @@ void executeProgram(Command *c)
     execv("program", buffer);
 }
 
-void w4IO(int signal);
 
-int main(int argc, char const *argv[])
-{    
+void firstExecution(Vector *line1, pid_t *fila1,  pid_t *fila2, pid_t *fila3)
+{
     pid_t pid;
     int semId, segment, *child_pid, status;
-    Vector *line1;
-
     // aloca a memória compartilhada
     segment = shmget(IPC_PRIVATE, sizeof(int), IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
     // associa a memória compartilhada ao processo
     child_pid = (int*)shmat(segment, 0, 0); // comparar o retorno com -1
     semId = semget(IPC_PRIVATE, 1, 0666 | IPC_CREAT);
     setSemValue(semId);
-
-    //creating vector
-    line1 = create_vector();
-    ReadCommands(line1);
-    printPrograms(line1);
-
-    // initializing line head
-    while(line1->size > 0)
+        // initializing line head
+    line1->curr = line1->begin;
+    for(int i = 0; i < line1->size; i++)
     {
         printf("line1 size: %d\n", line1->size);
-        line1->curr = line1->begin;
         printf("programa corrente = %s\n", line1->curr->program_name);
-        signal(SIGCHLD, w4IO);
-        IO_FLAG = 0;
         pid = fork();
 /*         if(pid == 0)
             break; */
         if(pid == 0)
         {
-            IO_FLAG = 0;
             *child_pid = getpid();
             //making sure the father doesn't access the wrong child pid
             printf("entered child process pid: %d\nExecuting program: %s...\n", getpid(), line1->curr->program_name);
             executeProgram(line1->curr);
         }
         
-        while(1)
+        if(pid > 0)
         {
-            if(pid > 0)
+            int stopped = 0;
+            printf("entered father, pid = %d\n", getpid());
+            // kill(*child_pid, SIGCONT);
+            for(int start = 0; start < quantum; start++)
             {
-                IO_FLAG = 0;
-                printf("entered father, pid = %d\n", getpid());
-                kill(*child_pid, SIGCONT);
-                //kill(*child_pid, SIGCONT);
-                for(int start = 0; start < quantum; start++)
+                sleep(1);
+                stopped = waitpid(*child_pid, &status, WUNTRACED|WNOHANG);
+                if(stopped > 0)
                 {
-                    sleep(1);
-                    if(IO_FLAG)
+                    printf("[I/O BOUND] rajada[%d] chegou ao fim\n\n", line1->curr->itime);
+                    line1->curr->itime++;
+                    if(line1->curr->itime == line1->curr->time_sequence_tam)
                     {
-                        printf("[I/O BOUND] rajada[%d] chegou ao fim\n\n", line1->curr->itime);
-                        line1->curr->itime++;
-                        if(line1->curr->itime == line1->curr->time_sequence_tam)
-                        {
-                            pop_curr(line1);
-                            break;
-                        }
-                        send2back(line1);
+                        pop_curr(line1);
                         break;
                     }
-                }
-                if(IO_FLAG)
-                {
-                    continue;
-                }
-                kill(*child_pid, SIGSTOP);
-                printf("[CPU BOUND] stopping child pid = %d\n", *child_pid);
-                // envia para o final da fila
-                if ( line1->curr->itime < line1->curr->time_sequence_tam)
-                {
-                    line1->curr->time_sequence[line1->curr->itime] -= quantum;
-                    if(line1->curr->time_sequence[line1->curr->itime] <= 0)
-                    {
-                        printf("rajada[%d] chegou ao fim\n\n", line1->curr->itime);
-                        line1->curr->time_sequence[line1->curr->itime] = 0;
-                        line1->curr->itime++;
-                        if(line1->curr->itime == line1->curr->time_sequence_tam)
-                        {
-                            pop_curr(line1);
-                            break;
-                        }
-                    }
-                    else
-                        printf("tempo restante da rajada[%d] = %ds\n\n",line1->curr->itime
-                        ,line1->curr->time_sequence[line1->curr->itime]);
-
-                    send2back(line1);
+                    //processo é I/O -> manda pra fila 1
+                    fila1[i] = *child_pid;
+                    line1->curr = line1->curr->next;
                 }
             }
+            if(stopped > 0)
+                continue;
+            kill(*child_pid, SIGSTOP);
+            printf("[CPU BOUND] stopping child pid = %d\n", *child_pid);
+            // envia para fila2
+            fila2[i] = *child_pid;
+            if ( line1->curr->itime == line1->curr->time_sequence_tam)
+                pop_curr(line1);
+            line1->curr = line1->curr->next;
+            // se só tem uma rajada->pop
         }
     }
-
     delSemValue(semId);
+}
+
+void printFila(pid_t * fila, int tam);
+
+int main(int argc, char const *argv[])
+{    
+
+    Vector *line1;
+    //creating vector
+    line1 = create_vector(1);
+    ReadCommands(line1);
+    printPrograms(line1);
+
+    pid_t *fila1, *fila2, *fila3;
+    fila1 = (pid_t*)malloc(sizeof(pid_t)*line1->size);
+    fila2 = (pid_t*)malloc(sizeof(pid_t)*line1->size);
+    fila3 = (pid_t*)malloc(sizeof(pid_t)*line1->size);
+
+    firstExecution(line1, fila1, fila2, fila3);
+
+    printf("\nFila1:\n");
+    printFila(fila1, line1->size);
+    printf("\nFila2:\n");
+    printFila(fila2, line1->size);
+    printf("\nFila3:\n");
+    printFila(fila3, line1->size);
     return 0;
 }
 
-
-
-void w4IO(int signal)
+void printFila(pid_t * fila, int tam)
 {
-    printf("entered Handler\n");
-    IO_FLAG = 1;
+    for(int i = 0; i < tam; i++)
+    {
+        printf("pid[%d] = %d\n", i, fila[i]);
+    }
 }

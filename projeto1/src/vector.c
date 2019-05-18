@@ -68,12 +68,13 @@ int size(Vector *v)
     return v->size;
 }
 
-Vector *create_vector()
+Vector *create_vector(int index)
 {
     Vector *v = (Vector*)malloc(sizeof(Vector));
     v->begin = NULL;
     v->end = v->begin;
     v->size = 0;
+    v->index = index;
     return v;
 }
 

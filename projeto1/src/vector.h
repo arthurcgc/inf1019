@@ -15,6 +15,7 @@ struct vector
     Command *curr;
     Command *end;
     int size;
+    int index;
 };
 
 struct command
@@ -30,7 +31,7 @@ struct command
 
 Command *create_command(char *program_name, char *time_windows);
 void push_back(Vector *v, Command *c);
-Vector *create_vector();
+Vector *create_vector(int index);
 int size(Vector *v);
 Command *pop_curr(Vector *v);
 void send2back(Vector *v);

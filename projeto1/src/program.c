@@ -20,7 +20,7 @@ int main(int argc, char const *argv[])
             sleep(1);
         }
         printf("enviando sinais\n");
-        kill(getppid(), SIGCHLD);
+        // kill(getppid(), SIGCHLD);
         kill(getpid(), SIGSTOP);
     }
 
