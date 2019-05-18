@@ -129,6 +129,7 @@ int main(int argc, char const *argv[])
         line1->curr = line1->begin;
         printf("programa corrente = %s\n", line1->curr->program_name);
         signal(SIGCHLD, w4IO);
+        IO_FLAG = 0;
         pid = fork();
 /*         if(pid == 0)
             break; */
@@ -143,11 +144,11 @@ int main(int argc, char const *argv[])
         
         while(1)
         {
-            IO_FLAG = 0;
-            kill(*child_pid, SIGCONT);
             if(pid > 0)
             {
+                IO_FLAG = 0;
                 printf("entered father, pid = %d\n", getpid());
+                kill(*child_pid, SIGCONT);
                 //kill(*child_pid, SIGCONT);
                 for(int start = 0; start < quantum; start++)
                 {
@@ -169,8 +170,8 @@ int main(int argc, char const *argv[])
                 {
                     continue;
                 }
-                printf("[CPU BOUND] stopping child pid = %d\n", *child_pid);
                 kill(*child_pid, SIGSTOP);
+                printf("[CPU BOUND] stopping child pid = %d\n", *child_pid);
                 // envia para o final da fila
                 if ( line1->curr->itime < line1->curr->time_sequence_tam)
                 {
