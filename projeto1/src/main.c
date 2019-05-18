@@ -12,7 +12,7 @@
 #include "semaforo.h"
 #include "parser.h"
 
-#define quantum 3
+#define quantum 4
 
 void executeProgram(Command *c)
 {
@@ -51,8 +51,7 @@ void firstExecution(Vector *line1, pid_t *fila1,  pid_t *fila2, pid_t *fila3)
     line1->curr = line1->begin;
     for(int i = 0; i < line1->size; i++)
     {
-        printf("line1 size: %d\n", line1->size);
-        printf("programa corrente = %s\n", line1->curr->program_name);
+        //printf("line1 size: %d\n", line1->size);
         pid = fork();
 /*         if(pid == 0)
             break; */
@@ -60,22 +59,23 @@ void firstExecution(Vector *line1, pid_t *fila1,  pid_t *fila2, pid_t *fila3)
         {
             *child_pid = getpid();
             //making sure the father doesn't access the wrong child pid
-            printf("entered child process pid: %d\nExecuting program: %s...\n", getpid(), line1->curr->program_name);
+            // printf("entered child process pid: %d\nExecuting program: %s...\n", getpid(), line1->curr->program_name);
             executeProgram(line1->curr);
         }
         
         if(pid > 0)
         {
             int stopped = 0;
-            printf("entered father, pid = %d\n", getpid());
-            // kill(*child_pid, SIGCONT);
+            // printf("entered father, pid = %d\n", getpid());
+            int flag_cont = 0;
             for(int start = 0; start < quantum; start++)
             {
                 sleep(1);
                 stopped = waitpid(*child_pid, &status, WUNTRACED|WNOHANG);
                 if(stopped > 0)
                 {
-                    printf("[I/O BOUND] rajada[%d] chegou ao fim\n\n", line1->curr->itime);
+                    //printf("[I/O BOUND] rajada[%d] chegou ao fim\n\n", line1->curr->itime);
+                    printf("processo %d é I/O BOUND\n\n", *child_pid);
                     line1->curr->itime++;
                     if(line1->curr->itime == line1->curr->time_sequence_tam)
                     {
@@ -85,13 +85,15 @@ void firstExecution(Vector *line1, pid_t *fila1,  pid_t *fila2, pid_t *fila3)
                     //processo é I/O -> manda pra fila 1
                     fila1[i] = *child_pid;
                     line1->curr = line1->curr->next;
+                    flag_cont = 1;
                     break;
                 }
             }
-            if(stopped > 0)
+            if(flag_cont)
                 continue;
+            
             kill(*child_pid, SIGSTOP);
-            printf("[CPU BOUND] stopping child pid = %d\n", *child_pid);
+            printf("processo %d é CPU BOUND\n\n", *child_pid);
             // envia para fila2
             fila2[i] = *child_pid;
             if ( line1->curr->itime == line1->curr->time_sequence_tam)
@@ -104,6 +106,24 @@ void firstExecution(Vector *line1, pid_t *fila1,  pid_t *fila2, pid_t *fila3)
 }
 
 void printFila(pid_t * fila, int tam);
+
+
+int isIO(pid_t pid)
+{
+    int stopped = 0, terminated = 0;
+    int status;
+    for(int start = 0; start < quantum; start++)
+    {
+        sleep(1);
+        stopped = waitpid(pid, &status, WUNTRACED|WNOHANG);
+        if(stopped > 0)
+        {
+            printf("processo %d é I/O BOUND\n\n", pid);
+            return 1;
+        }
+    }
+    return 0;
+}
 
 int main(int argc, char const *argv[])
 {    
@@ -120,6 +140,41 @@ int main(int argc, char const *argv[])
     fila3 = (pid_t*)malloc(sizeof(pid_t)*line1->size);
 
     firstExecution(line1, fila1, fila2, fila3);
+    printf("___________END OF FIRST EXECUTION____________\n\n");
+
+
+    // percorre a fila1 tres vezes
+    for(int i = 0; i < 3; i++)
+    {
+        for(int j = 0; j < line1->size; j++)
+        {
+            int res = -2;
+            if(fila1[j] == 0)
+                continue;
+            else
+            {
+                int stopped = 0;
+                int status;
+                kill(fila1[j], SIGCONT);
+
+                //processo continua I/O bound -> mantém
+                res = isIO(fila1[j]);
+                if(res)
+                    continue;
+                else
+                {
+                    // é CPU BOUND
+                    kill(fila1[j], SIGSTOP);
+                    printf("processo %d é CPU BOUND\n\n", fila1[j]);
+                    // indice j -> ordem de execução do processo quando executamos a line1
+                    fila2[j] = fila1[j];
+                    fila1[j] = 0;
+                }
+            }
+        }
+    }
+
+    printf("___________END OF FILA1 FIRST EXECUTION____________\n");
 
     printf("\nFila1:\n");
     printFila(fila1, line1->size);
@@ -127,6 +182,7 @@ int main(int argc, char const *argv[])
     printFila(fila2, line1->size);
     printf("\nFila3:\n");
     printFila(fila3, line1->size);
+
     return 0;
 }
 

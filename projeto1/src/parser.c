@@ -26,6 +26,7 @@ void printPrograms(Vector *v)
         printf("%d)\n", curr->time_sequence[curr->time_sequence_tam-1]);
         curr = curr->next;
     }
+    printf("\n");
 }
 
 void ReadCommands(Vector *programs)
