@@ -111,8 +111,15 @@ Command *pop_curr(Vector *v)
 {
     Command *ret = create_command("", "");
     shallowCopy(ret, v->curr);
-    v->curr->next->prvs = v->curr->prvs;
-    v->curr->prvs->next = v->curr->next;
+    if(v->curr == v->end)
+    {
+        v->size = 0;
+        return NULL;
+    }
+    if(v->curr->next != NULL)
+        v->curr->next->prvs = v->curr->prvs;
+    if(v->curr->prvs != NULL)
+        v->curr->prvs->next = v->curr->next;
 
     v->size--;
     if(v->curr == v->begin)
@@ -136,7 +143,7 @@ void send2back(Vector *v)
     */
    //fazendo com que b seja o primeiro
     v->curr->next->prvs = NULL;
-    v->curr->next = v->begin;
+    v->begin = v->curr->next;
     // próximo de c é a
     v->end->next = v->curr;
     // anterior de a é c
