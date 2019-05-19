@@ -85,7 +85,7 @@ void ReadFile(Vector *programs)
     for(int i = 0; i < command_cap; i++)
     {
         getline(&line, &cap, fp);
-        if(strcmp(line, "end") == 0)
+        if(strcmp(line, "end") == 0 || strcmp(line, "end\n") == 0)
         {
             return;
         }

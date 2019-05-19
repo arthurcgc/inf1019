@@ -1,5 +1,4 @@
 exec a (1, 1, 1)
-exec b (3, 4, 3, 4)
-exec c (12)
-exec d (12, 12)
+exec b (2, 5, 3, 5, 1)
+exec c (5, 5, 5, 5)
 end
