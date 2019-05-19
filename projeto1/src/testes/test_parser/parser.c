@@ -73,12 +73,12 @@ void ReadFile(Vector *programs)
     char *p_name = (char*)malloc(line_cap*sizeof(char));
     char *time_windows = (char*)malloc(line_cap*sizeof(char));
     char *exec = (char*)malloc(sizeof(char)*4);
-    size_t cap = line_cap;
+    int cap = line_cap;
 
     FILE *fp = fopen("test_case.txt", "r");
     if(fp == NULL)
     {
-        printf("Não existe arquivo de teste\n");
+        ferror("Não existe arquivo de teste\n");
         exit(0);
     }
 

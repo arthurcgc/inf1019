@@ -105,7 +105,6 @@ void firstExecution(Vector *line1, pid_t *fila1,  pid_t *fila2, pid_t *fila3)
     delSemValue(semId);
 }
 
-void printFila(pid_t * fila, int tam);
 
 
 int isIO(pid_t pid)
@@ -204,6 +203,7 @@ int rodaFila(pid_t *fila1, pid_t *fila2, pid_t *fila3 , int fila_index, int n_pr
     return count_terminated;
 }
 
+void printFila(pid_t * fila, int tam);
 
 int main(int argc, char const *argv[])
 {    
@@ -211,7 +211,7 @@ int main(int argc, char const *argv[])
     Vector *line1;
     //creating vector
     line1 = create_vector(1);
-    ReadCommands(line1);
+    ReadFile(line1);
     printPrograms(line1);
 
     pid_t *fila1, *fila2, *fila3;
@@ -238,13 +238,6 @@ int main(int argc, char const *argv[])
         count_terminated += rodaFila(fila1, fila2, fila3, 3, line1->size);
     }
 
-    printf("\nFila1:\n");
-    printFila(fila1, line1->size);
-    printf("\nFila2:\n");
-    printFila(fila2, line1->size);
-    printf("\nFila3:\n");
-    printFila(fila3, line1->size);
-
     return 0;
 }
 
@@ -255,43 +248,3 @@ void printFila(pid_t * fila, int tam)
         printf("pid[%d] = %d\n", i, fila[i]);
     }
 }
-
-/*
-    old_roda_fila1()
-    for(int i = 0; i < 3; i++)
-        {
-            for(int j = 0; j < line1->size; j++)
-            {
-                int res = -2;
-                if(fila1[j] == 0)
-                    continue;
-                else
-                {
-                    int terminated;
-                    int status;
-                    terminated = kill(fila1[j], SIGCONT);
-
-                    if(terminated == -1)
-                    {
-                        count_terminated++;
-                        printf("processo %d terminou\n", fila1[j]);
-                        fila1[j] = 0;
-                        continue;
-                    }
-                    //processo continua I/O bound -> mantém
-                    res = isIO(fila1[j]);
-                    if(res)
-                        continue;
-                    else
-                    {
-                        // é CPU BOUND
-                        kill(fila1[j], SIGSTOP);
-                        printf("processo %d é CPU BOUND\n\n", fila1[j]);
-                        // indice j -> ordem de execução do processo quando executamos a line1
-                        fila2[j] = fila1[j];
-                        fila1[j] = 0;
-                    }
-                }
-            }
-        }
-    } */

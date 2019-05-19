@@ -24,21 +24,17 @@ void parseTimeWindows(int *v, char *s)
     char n[line_cap];
     int test = 0;
 
-    while(*s != '\0')
+    for(int i = 0;*s!='\0';i++)
     {
-        int temp = 0;
         while(*s == ' ')
             s++;
-        
-        if(sscanf(s, "%d", &temp));
-        {
-            if(temp > 0)
-            {
-                v[i] = temp;
-                i++;
-                s+=2;
-            }
-        }
+        test = sscanf(s, "%s", n);
+        if(test == -1)
+            break;
+        *(v+i) = atoi(n);
+        while(*s == ' ')
+            s++;
+        s++;
     }
 }
 
