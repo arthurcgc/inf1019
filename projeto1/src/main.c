@@ -181,8 +181,8 @@ int rodaFila(pid_t *fila1, pid_t *fila2, pid_t *fila3 , int fila_index, int n_pr
             else
             {
                 // é CPU BOUND
-                kill(fila1[j], SIGSTOP);
-                printf("processo %d é CPU BOUND\n", fila1[j]);
+                kill(fila_corr[j], SIGSTOP);
+                printf("processo %d é CPU BOUND\n", fila_corr[j]);
                 // indice j -> ordem de execução do processo quando executamos a line1
                 if(fila_index == 1)
                 {
