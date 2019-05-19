@@ -196,7 +196,10 @@ int rodaFila(pid_t *fila1, pid_t *fila2, pid_t *fila3 , int fila_index, int n_pr
                     fila_corr[j] = 0;
                 }
                 else
+                {
+                    printf("processo %d continua na fila3\n\n", fila_corr[j]);
                     continue;
+                }
             }
         }
     }
