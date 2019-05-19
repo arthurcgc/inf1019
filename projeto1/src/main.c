@@ -110,7 +110,7 @@ void printFila(pid_t * fila, int tam);
 
 int isIO(pid_t pid)
 {
-    int stopped = 0, terminated = 0;
+    int stopped = 0;
     int status;
     for(int start = 0; start < quantum; start++)
     {
@@ -118,12 +118,92 @@ int isIO(pid_t pid)
         stopped = waitpid(pid, &status, WUNTRACED|WNOHANG);
         if(stopped > 0)
         {
-            printf("processo %d é I/O BOUND\n\n", pid);
+            printf("processo %d é I/O BOUND\n", pid);
             return 1;
         }
     }
     return 0;
 }
+
+int rodaFila(pid_t *fila1, pid_t *fila2, pid_t *fila3 , int fila_index, int n_processes)
+{
+    pid_t *fila_corr = (pid_t*)malloc(sizeof(pid_t)*n_processes);
+    int count_terminated = 0;
+
+    if(fila_index == 1)
+        fila_corr = fila1;
+    else if(fila_index == 2)
+        fila_corr = fila2;
+    else
+        fila_corr = fila3;
+
+    for(int j = 0; j < n_processes; j++)
+    {
+        int res = -2;
+        if(fila_corr[j] == 0)
+            continue;
+        else
+        {
+            int terminated;
+            int status;
+            terminated = kill(fila_corr[j], SIGCONT);
+
+            if(terminated == -1)
+            {
+                count_terminated++;
+                printf("processo %d terminou\n\n", fila_corr[j]);
+                fila_corr[j] = 0;
+                continue;
+            }
+            //processo continua I/O bound -> mantém
+            res = isIO(fila_corr[j]);
+            if(res)
+            {
+                if(fila_index == 1)
+                {
+                    printf("processo %d continua na fila1\n\n", fila_corr[j]);
+                    continue;
+                }
+                if(fila_index == 2)
+                {
+                    fila1[j] = fila_corr[j];
+                    printf("processo %d subiu para fila1\n\n", fila_corr[j]);
+                    fila_corr[j] = 0;
+                }
+                else
+                {
+                    fila2[j] = fila_corr[j];
+                    printf("processo %d subiu para fila2\n\n", fila_corr[j]);
+                    fila_corr[j] = 0;
+                }
+                
+            }
+            else
+            {
+                // é CPU BOUND
+                kill(fila1[j], SIGSTOP);
+                printf("processo %d é CPU BOUND\n", fila1[j]);
+                // indice j -> ordem de execução do processo quando executamos a line1
+                if(fila_index == 1)
+                {
+                    printf("Descendo processo %d para fila2\n\n", fila_corr[j]);
+                    fila2[j] = fila_corr[j];
+                    fila_corr[j] = 0;
+                }
+                else if(fila_index == 2)
+                {
+                    printf("Descendo processo %d para fila3\n\n", fila_corr[j]);
+                    fila3[j] = fila_corr[j];
+                    fila_corr[j] = 0;
+                }
+                else
+                    continue;
+            }
+        }
+    }
+    return count_terminated;
+}
+
 
 int main(int argc, char const *argv[])
 {    
@@ -144,37 +224,19 @@ int main(int argc, char const *argv[])
 
 
     // percorre a fila1 tres vezes
-    for(int i = 0; i < 3; i++)
+    int count_terminated = 0;
+    while(count_terminated < line1->size)
     {
-        for(int j = 0; j < line1->size; j++)
-        {
-            int res = -2;
-            if(fila1[j] == 0)
-                continue;
-            else
-            {
-                int stopped = 0;
-                int status;
-                kill(fila1[j], SIGCONT);
-
-                //processo continua I/O bound -> mantém
-                res = isIO(fila1[j]);
-                if(res)
-                    continue;
-                else
-                {
-                    // é CPU BOUND
-                    kill(fila1[j], SIGSTOP);
-                    printf("processo %d é CPU BOUND\n\n", fila1[j]);
-                    // indice j -> ordem de execução do processo quando executamos a line1
-                    fila2[j] = fila1[j];
-                    fila1[j] = 0;
-                }
-            }
-        }
+        // é 3 por causa da primeira execução
+        printf("Fila1:\n");
+        for(int i = 0; i < 4; i++)
+            count_terminated += rodaFila(fila1, fila2, fila3, 1, line1->size);
+        printf("Fila2:\n");
+        for(int i = 0; i < 2; i++)
+            count_terminated += rodaFila(fila1, fila2, fila3, 2, line1->size);
+        printf("Fila3:\n");
+        count_terminated += rodaFila(fila1, fila2, fila3, 3, line1->size);
     }
-
-    printf("___________END OF FILA1 FIRST EXECUTION____________\n");
 
     printf("\nFila1:\n");
     printFila(fila1, line1->size);
@@ -193,3 +255,43 @@ void printFila(pid_t * fila, int tam)
         printf("pid[%d] = %d\n", i, fila[i]);
     }
 }
+
+/*
+    old_roda_fila1()
+    for(int i = 0; i < 3; i++)
+        {
+            for(int j = 0; j < line1->size; j++)
+            {
+                int res = -2;
+                if(fila1[j] == 0)
+                    continue;
+                else
+                {
+                    int terminated;
+                    int status;
+                    terminated = kill(fila1[j], SIGCONT);
+
+                    if(terminated == -1)
+                    {
+                        count_terminated++;
+                        printf("processo %d terminou\n", fila1[j]);
+                        fila1[j] = 0;
+                        continue;
+                    }
+                    //processo continua I/O bound -> mantém
+                    res = isIO(fila1[j]);
+                    if(res)
+                        continue;
+                    else
+                    {
+                        // é CPU BOUND
+                        kill(fila1[j], SIGSTOP);
+                        printf("processo %d é CPU BOUND\n\n", fila1[j]);
+                        // indice j -> ordem de execução do processo quando executamos a line1
+                        fila2[j] = fila1[j];
+                        fila1[j] = 0;
+                    }
+                }
+            }
+        }
+    } */
