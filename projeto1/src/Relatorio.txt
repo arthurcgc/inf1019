@@ -1,0 +1,783 @@
+Trabalho 1 de Sistemas da Computação
+Autores: Arthur Cavalcante Gomes Coelho - 1313099
+            Marcos Vinícius Porto de Sá - 1413428
+
+
+-------------------------------------------------------------------------------------
+Arquivo de testes:
+-------------------------------------------------------------------------------------
+test_case.txt
+
+exec a (1, 1, 1)
+exec b (2, 5, 3, 5, 1)
+exec c (5, 5, 5, 5)
+end
+
+-------------------------------------------------------------------------------------
+Comportamento esperado:
+-------------------------------------------------------------------------------------
+
+- O programa 'a' sempre terá comportamento I/O bound e sempre estará na fila 1.
+- O programa 'b' poderá apresentar comportamento I/O bound ou CPU bound na fila 1
+- O programa 'b' sempre apresentará comportamento I/0 bound na fila 2
+- O programa 'c' sempre apresentará comportamento CPU bound na fila 1
+- O programa 'd' sempre apresentará comportamento I/O bound na fila 2 
+
+-------------------------------------------------------------------------------------
+Execução:
+-------------------------------------------------------------------------------------
+$ ./compile.sh
+$ ./main
+
+a (1, 1, 1)
+b (2, 5, 3, 5, 1)
+c (5, 5, 5, 5)
+
+6572
+enviando sinais
+processo 6572 é I/O BOUND
+
+6574
+6574
+enviando sinais
+processo 6574 é I/O BOUND
+
+6575
+6575
+6575
+6575
+processo 6575 é CPU BOUND
+
+___________END OF FIRST EXECUTION____________
+
+Fila1:
+6572
+enviando sinais
+processo 6572 é I/O BOUND
+processo 6572 continua na fila1
+
+6574
+6574
+6574
+6574
+processo 6574 é CPU BOUND
+Descendo processo 6574 para fila2
+
+6572
+enviando sinais
+processo 6572 é I/O BOUND
+processo 6572 continua na fila1
+
+processo 6572 é I/O BOUND
+processo 6572 continua na fila1
+
+processo 6572 terminou
+
+Fila2:
+6574
+enviando sinais
+processo 6574 é I/O BOUND
+processo 6574 subiu para fila1
+
+6575
+enviando sinais
+processo 6575 é I/O BOUND
+processo 6575 subiu para fila1
+
+Fila3:
+Fila1:
+6574
+6574
+6574
+enviando sinais
+processo 6574 é I/O BOUND
+processo 6574 continua na fila1
+
+6575
+6575
+6575
+6575
+processo 6575 é CPU BOUND
+Descendo processo 6575 para fila2
+
+6574
+6574
+6574
+6574
+processo 6574 é CPU BOUND
+Descendo processo 6574 para fila2
+
+Fila2:
+6574
+enviando sinais
+processo 6574 é I/O BOUND
+processo 6574 subiu para fila1
+
+6575
+enviando sinais
+processo 6575 é I/O BOUND
+processo 6575 subiu para fila1
+
+Fila3:
+Fila1:
+6574
+enviando sinais
+processo 6574 é I/O BOUND
+processo 6574 continua na fila1
+
+6575
+6575
+6575
+6575
+processo 6575 é CPU BOUND
+Descendo processo 6575 para fila2
+
+processo 6574 é I/O BOUND
+processo 6574 continua na fila1
+
+processo 6574 terminou
+
+Fila2:
+6575
+enviando sinais
+processo 6575 é I/O BOUND
+processo 6575 subiu para fila1
+
+Fila3:
+Fila1:
+6575
+6575
+6575
+6575
+processo 6575 é CPU BOUND
+Descendo processo 6575 para fila2
+
+Fila2:
+6575
+enviando sinais
+processo 6575 é I/O BOUND
+processo 6575 subiu para fila1
+
+Fila3:
+Fila1:
+processo 6575 é I/O BOUND
+processo 6575 continua na fila1
+
+processo 6575 terminou
+
+Fila2:
+Fila3:
+
+
+-------------------------------------------------------------------------------------
+Fontes:
+-------------------------------------------------------------------------------------
+1- Interpretador
+-------------------------------------------------------------------------------------
+parser.h 
+
+#pragma once
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include "vector.h"
+
+#define line_cap 256
+#define command_cap 50
+
+char *my_itoa(int num, char *str);
+
+void printPrograms(Vector *v);
+
+void ReadCommands(Vector *programs);
+
+void ReadFile(Vector *programs);
+
+-------------------------------------------------------------------------------------
+parser.c 
+
+#include "parser.h"
+
+int IO_FLAG = 0;
+
+char *my_itoa(int num, char *str)
+{
+        if(str == NULL)
+        {
+                return NULL;
+        }
+        sprintf(str, "%d", num);
+        return str;
+}
+
+
+void printPrograms(Vector *v)
+{
+    Command *curr = v->begin;
+    for(int i = 0; i < v->size; i++)
+    {
+        printf("%s (", curr->program_name);fflush(stdout);
+        for(int j = 0; j < curr->time_sequence_tam-1; j++)
+        {
+            printf("%d, ", curr->time_sequence[j]);
+        }
+        printf("%d)\n", curr->time_sequence[curr->time_sequence_tam-1]);
+        curr = curr->next;
+    }
+    printf("\n");
+}
+
+void ReadCommands(Vector *programs)
+{
+    char *line = (char*)malloc(line_cap*sizeof(char));
+    char *p_name = (char*)malloc(line_cap*sizeof(char));
+    char *time_windows = (char*)malloc(line_cap*sizeof(char));
+    int end = 0;
+
+    for(int i = 0; i < command_cap; i++)
+    {
+        for(int j = 0; j < 3; j++)
+        {
+            scanf(" %s", line);
+            if(strcmp(line, "exec") == 0)
+                continue;
+            if(strcmp(line, "end") == 0)
+            {
+                return;
+            }
+            if(line[0] != '(')
+            {
+                strcpy(p_name, line);
+            }
+            else if(line[0] == '(')
+            {
+                strcat(time_windows, line);
+                fgets(line, line_cap, stdin);
+                strcat(time_windows, line);
+            }
+        }
+        if(end)
+            break;
+        Command *c = create_command(p_name, time_windows);
+        push_back(programs, c);
+        memset(time_windows,0,sizeof(time_windows));
+    }
+}
+
+
+void ReadFile(Vector *programs)
+{
+    char *line = (char*)malloc(line_cap*sizeof(char));
+    char *p_name = (char*)malloc(line_cap*sizeof(char));
+    char *time_windows = (char*)malloc(line_cap*sizeof(char));
+    char *exec = (char*)malloc(sizeof(char)*4);
+    size_t cap = line_cap;
+
+    FILE *fp = fopen("test_case.txt", "r");
+    if(fp == NULL)
+    {
+        printf("Não existe arquivo de teste\n");
+        exit(0);
+    }
+    for(int i = 0; i < command_cap; i++)
+    {
+        getline(&line, &cap, fp);
+        if(strcmp(line, "end") == 0 || strcmp(line, "end\n") == 0)
+        {
+            return;
+        }
+        sscanf(line, "%s %s %[^\n]s ", exec, p_name, time_windows);
+        Command *c = create_command(p_name, time_windows);
+        push_back(programs, c);
+        memset(time_windows,0,sizeof(time_windows));
+    }
+}
+-------------------------------------------------------------------------------------
+2- Vector
+-------------------------------------------------------------------------------------
+vector.h
+
+#pragma once
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+#define line_cap 256
+#define command_cap 50
+
+typedef struct vector Vector;
+typedef struct command Command;
+
+struct vector
+{
+    Command *begin;
+    Command *curr;
+    Command *end;
+    int size;
+    int index;
+};
+
+struct command
+{
+    char program_name[line_cap];
+    int time_sequence[10];
+    int time_sequence_tam;
+    int itime;
+    pid_t pid;
+    Command *next;
+    Command *prvs;
+};
+
+Command *create_command(char *program_name, char *time_windows);
+void push_back(Vector *v, Command *c);
+Vector *create_vector(int index);
+int size(Vector *v);
+Command *pop_curr(Vector *v);
+void send2back(Vector *v);
+
+-------------------------------------------------------------------------------------
+vector.c
+
+#include "vector.h"
+
+/*parsing functions*/
+
+void stripTokens(char *s)
+{
+    char buffer = s[0];
+    int i;
+    for (i = 0; *s != '\0'; i++)
+    {
+        if(*s == '(' || *s == ')' || *s == ',' || *s == '\n')
+            *s = ' ';
+        s++;
+    }
+    s = s-i;
+}
+
+void parseTimeWindows(int *v, char *s)
+{
+    char buffer = 'f';
+    stripTokens(s);
+    int i = 0;
+    char *sbuffer;
+    char n[line_cap];
+    int test = 0;
+
+    while(*s != '\0')
+    {
+        int temp = 0;
+        while(*s == ' ')
+            s++;
+        
+        if(sscanf(s, "%d", &temp));
+        {
+            if(temp > 0)
+            {
+                v[i] = temp;
+                i++;
+                s+=2;
+            }
+        }
+    }
+}
+
+/*end of parsing functions*/
+
+Command *create_command(char *program_name, char *time_windows)
+{
+    Command *c = (Command*)malloc(sizeof(Command));
+    strcpy(c->program_name, program_name);
+    int v[10];
+    int i = 0;
+    parseTimeWindows(c->time_sequence, time_windows);
+    for(i;;i++)
+    {
+        if(c->time_sequence[i] == 0)
+            break;
+    }
+    c->time_sequence_tam = i;
+    c->itime = 0;
+    c->next = NULL;
+    c->prvs = NULL;
+    return c;
+
+}
+
+int size(Vector *v)
+{
+    return v->size;
+}
+
+Vector *create_vector(int index)
+{
+    Vector *v = (Vector*)malloc(sizeof(Vector));
+    v->begin = NULL;
+    v->end = v->begin;
+    v->size = 0;
+    v->index = index;
+    return v;
+}
+
+void push_back(Vector *v, Command *c)
+{
+    v->size++;
+    if(v->end!=NULL)
+    {
+        v->end->next = c;
+        c->prvs = v->end;
+        v->end = c;
+    }
+    else
+    {
+        v->begin = c;
+        v->end = v->begin;
+    }
+}
+
+
+void shallowCopy(Command *dest, Command *source)
+{
+    int tam_time_seq = sizeof(source->time_sequence)/sizeof(int);
+    strcat(dest->program_name, source->program_name);
+    for(int i = 0; i < tam_time_seq; i++)
+        dest->time_sequence[i] = source->time_sequence[i];
+    dest->next = source->next;
+    dest->prvs = source->prvs;
+    dest->itime = source->itime;
+    dest->time_sequence_tam = source->time_sequence_tam;
+    dest->pid = source->pid;
+}
+
+Command *pop_curr(Vector *v)
+{
+    Command *ret = create_command("", "");
+    shallowCopy(ret, v->curr);
+    if(v->curr == v->end)
+    {
+        v->size = 0;
+        return NULL;
+    }
+    if(v->curr->next != NULL)
+        v->curr->next->prvs = v->curr->prvs;
+    if(v->curr->prvs != NULL)
+        v->curr->prvs->next = v->curr->next;
+
+    v->size--;
+    if(v->curr == v->begin)
+    {
+        if(v->curr->next != NULL)
+            v->begin = v->curr->next;
+    }
+    if(v->curr == v->end)
+        return NULL;
+    
+    return ret;
+}
+
+void send2back(Vector *v)
+{
+    if(v->curr == v->end)
+        return;
+    /*
+        a->b->c
+        b->c->a
+    */
+   //fazendo com que b seja o primeiro
+    v->curr->next->prvs = NULL;
+    v->begin = v->curr->next;
+    // próximo de c é a
+    v->end->next = v->curr;
+    // anterior de a é c
+    v->curr->prvs = v->end;
+    v->end = v->curr;
+}
+-------------------------------------------------------------------------------------
+3- Programa
+-------------------------------------------------------------------------------------
+program.c
+
+#include <sys/types.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+#include <string.h>
+
+int main(int argc, char const *argv[])
+{
+    int time;
+    for(int i = 1;i < argc; i++)
+    {
+        sscanf(argv[i], "%d", &time);
+        for(int j = 0; j < time; j++)
+        {
+            printf("%d\n", getpid());
+            sleep(1);
+        }
+        printf("enviando sinais\n");
+        kill(getpid(), SIGSTOP);
+    }
+    exit(0);
+
+    return 0;
+}
+-------------------------------------------------------------------------------------
+4- Escalonador
+-------------------------------------------------------------------------------------
+main.c
+
+#define _POSIX_C_SOURCE 199309L
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <signal.h>
+#include <time.h>
+#include <sys/types.h> 
+#include <errno.h>
+#include <sys/wait.h>
+#include "vector.h"
+#include "semaforo.h"
+#include "parser.h"
+
+#define quantum 4
+
+void executeProgram(Command *c)
+{
+    int i = 1;
+    pid_t pid;
+    char *buffer[c->time_sequence_tam+2];
+    buffer[0] = "program";
+    for(; i < c->time_sequence_tam+1; i++)
+    {
+        char temp[2];
+        // sprintf(temp, "%d", time_sequence[i-1]);
+        my_itoa(c->time_sequence[i-1], temp);
+        buffer[i] = (char*)malloc(sizeof(char)*2);
+        strcpy(buffer[i], temp);
+        // printf("buffer[%d] = %s\n", i ,buffer[i]);
+    }
+    // printf("adding NULL\n\n");
+    buffer[i] = (char*)malloc(sizeof(char)*2);
+    buffer[i] = NULL;
+    // char *parmList[] = {"program", buffer, NULL};    
+    execv("program", buffer);
+}
+
+
+void firstExecution(Vector *line1, pid_t *fila1,  pid_t *fila2, pid_t *fila3)
+{
+    pid_t pid;
+    int semId, segment, *child_pid, status;
+    // aloca a memória compartilhada
+    segment = shmget(IPC_PRIVATE, sizeof(int), IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
+    // associa a memória compartilhada ao processo
+    child_pid = (int*)shmat(segment, 0, 0); // comparar o retorno com -1
+    semId = semget(IPC_PRIVATE, 1, 0666 | IPC_CREAT);
+    setSemValue(semId);
+        // initializing line head
+    line1->curr = line1->begin;
+    for(int i = 0; i < line1->size; i++)
+    {
+        //printf("line1 size: %d\n", line1->size);
+        pid = fork();
+/*         if(pid == 0)
+            break; */
+        if(pid == 0)
+        {
+            *child_pid = getpid();
+            //making sure the father doesn't access the wrong child pid
+            // printf("entered child process pid: %d\nExecuting program: %s...\n", getpid(), line1->curr->program_name);
+            executeProgram(line1->curr);
+        }
+        
+        if(pid > 0)
+        {
+            int stopped = 0;
+            // printf("entered father, pid = %d\n", getpid());
+            int flag_cont = 0;
+            for(int start = 0; start < quantum; start++)
+            {
+                sleep(1);
+                stopped = waitpid(*child_pid, &status, WUNTRACED|WNOHANG);
+                if(stopped > 0)
+                {
+                    //printf("[I/O BOUND] rajada[%d] chegou ao fim\n\n", line1->curr->itime);
+                    printf("processo %d é I/O BOUND\n\n", *child_pid);
+                    line1->curr->itime++;
+                    if(line1->curr->itime == line1->curr->time_sequence_tam)
+                    {
+                        pop_curr(line1);
+                        break;
+                    }
+                    //processo é I/O -> manda pra fila 1
+                    fila1[i] = *child_pid;
+                    line1->curr = line1->curr->next;
+                    flag_cont = 1;
+                    break;
+                }
+            }
+            if(flag_cont)
+                continue;
+            
+            kill(*child_pid, SIGSTOP);
+            printf("processo %d é CPU BOUND\n\n", *child_pid);
+            // envia para fila2
+            fila2[i] = *child_pid;
+            if ( line1->curr->itime == line1->curr->time_sequence_tam)
+                pop_curr(line1);
+            line1->curr = line1->curr->next;
+            // se só tem uma rajada->pop
+        }
+    }
+    delSemValue(semId);
+}
+
+
+
+int isIO(pid_t pid)
+{
+    int stopped = 0;
+    int status;
+    for(int start = 0; start < quantum; start++)
+    {
+        sleep(1);
+        stopped = waitpid(pid, &status, WUNTRACED|WNOHANG);
+        if(stopped > 0)
+        {
+            printf("processo %d é I/O BOUND\n", pid);
+            return 1;
+        }
+    }
+    return 0;
+}
+
+int rodaFila(pid_t *fila1, pid_t *fila2, pid_t *fila3 , int fila_index, int n_processes)
+{
+    pid_t *fila_corr = (pid_t*)malloc(sizeof(pid_t)*n_processes);
+    int count_terminated = 0;
+
+    if(fila_index == 1)
+        fila_corr = fila1;
+    else if(fila_index == 2)
+        fila_corr = fila2;
+    else
+        fila_corr = fila3;
+
+    for(int j = 0; j < n_processes; j++)
+    {
+        int res = -2;
+        if(fila_corr[j] == 0)
+            continue;
+        else
+        {
+            int terminated;
+            int status;
+            terminated = kill(fila_corr[j], SIGCONT);
+
+            if(terminated == -1)
+            {
+                count_terminated++;
+                printf("processo %d terminou\n\n", fila_corr[j]);
+                fila_corr[j] = 0;
+                continue;
+            }
+            //processo continua I/O bound -> mantém
+            res = isIO(fila_corr[j]);
+            if(res)
+            {
+                if(fila_index == 1)
+                {
+                    printf("processo %d continua na fila1\n\n", fila_corr[j]);
+                    continue;
+                }
+                if(fila_index == 2)
+                {
+                    fila1[j] = fila_corr[j];
+                    printf("processo %d subiu para fila1\n\n", fila_corr[j]);
+                    fila_corr[j] = 0;
+                }
+                else
+                {
+                    fila2[j] = fila_corr[j];
+                    printf("processo %d subiu para fila2\n\n", fila_corr[j]);
+                    fila_corr[j] = 0;
+                }
+                
+            }
+            else
+            {
+                // é CPU BOUND
+                kill(fila_corr[j], SIGSTOP);
+                printf("processo %d é CPU BOUND\n", fila_corr[j]);
+                // indice j -> ordem de execução do processo quando executamos a line1
+                if(fila_index == 1)
+                {
+                    printf("Descendo processo %d para fila2\n\n", fila_corr[j]);
+                    fila2[j] = fila_corr[j];
+                    fila_corr[j] = 0;
+                }
+                else if(fila_index == 2)
+                {
+                    printf("Descendo processo %d para fila3\n\n", fila_corr[j]);
+                    fila3[j] = fila_corr[j];
+                    fila_corr[j] = 0;
+                }
+                else
+                {
+                    printf("processo %d continua na fila3\n\n", fila_corr[j]);
+                    continue;
+                }
+            }
+        }
+    }
+    return count_terminated;
+}
+
+void printFila(pid_t * fila, int tam);
+
+int main(int argc, char const *argv[])
+{    
+
+    Vector *line1;
+    //creating vector
+    line1 = create_vector(1);
+    ReadFile(line1);
+    printPrograms(line1);
+
+    pid_t *fila1, *fila2, *fila3;
+    fila1 = (pid_t*)malloc(sizeof(pid_t)*line1->size);
+    fila2 = (pid_t*)malloc(sizeof(pid_t)*line1->size);
+    fila3 = (pid_t*)malloc(sizeof(pid_t)*line1->size);
+
+    firstExecution(line1, fila1, fila2, fila3);
+    printf("___________END OF FIRST EXECUTION____________\n\n");
+
+
+    // percorre a fila1 tres vezes
+    int count_terminated = 0;
+    while(count_terminated < line1->size)
+    {
+        // é 3 por causa da primeira execução
+        printf("Fila1:\n");
+        for(int i = 0; i < 4; i++)
+            count_terminated += rodaFila(fila1, fila2, fila3, 1, line1->size);
+        printf("Fila2:\n");
+        for(int i = 0; i < 2; i++)
+            count_terminated += rodaFila(fila1, fila2, fila3, 2, line1->size);
+        printf("Fila3:\n");
+        count_terminated += rodaFila(fila1, fila2, fila3, 3, line1->size);
+    }
+
+    return 0;
+}
+
+void printFila(pid_t * fila, int tam)
+{
+    for(int i = 0; i < tam; i++)
+    {
+        printf("pid[%d] = %d\n", i, fila[i]);
+    }
+}
+-------------------------------------------------------------------------------------
