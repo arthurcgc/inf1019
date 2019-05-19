@@ -19,6 +19,7 @@ int main(int argc, char const *argv[])
         printf("enviando sinais\n");
         kill(getpid(), SIGSTOP);
     }
+    exit(0);
 
     return 0;
 }
