@@ -16,6 +16,16 @@ end
 -------------------------------------------------------------------------------------
 Comportamento esperado:
 -------------------------------------------------------------------------------------
+-O interpretador lê os comandos do arquivo teste_case.txt, e preenche uma fila (vetor) duplamente encadeada com cabeça. Cada elemento dessa lista conterá informações sobre os comandos lidos pelo interpretador, como nome e sequencia de rajadas, e importantes para a execução correta do escalonador, como o pid do processo referente ao programa executado por cada comando.
+-Ao iniciar a primeira execução,a lista será percorrida de tal forma que cada elemento da lista significará a execução de um fork, onde cada processo filho executará um programa que recebe como parâmetro as rajadas a serem executadas.
+-Os processos serão executados na ordem que se dispẽm na lista (mesma ordem do arquivo). E serão manejadas para a fila 1 ou fila 2 dependendo do comportamento apresentado na primeira execução. Esse processo valerá como uma execução da fila 1. 
+-A fila 1 tem seus processos executados mais 3 vezes ou até não possuir mais processos. A execução da fila 2 iniciará em seguida, com o mesmo comportamento da fila 1 a partir da segunda execução. O mesmo valerá para a fila 3, que será executada ao término da fila 2.
+-As filas consistem em vetores de pids de tamanho igual a lista encadeada. Que serão preenchidos no decorrer da primeira execução da fila 1,onde a lista encadeada contendo os comandos é percorrida.
+-Os espaços vazios nas filas são representados por elementos com valor zero, enquanto os programas em cada fila serão representados pelo pid de seus respectivos processos.
+Ao mover um processo de uma fila pra outra o n-ésimo elemento da fila origem onde seu pid estava regitrado é atribuido com zero e o n-ésimo elemento da fila destino será atribuido com seu respectivo pid.
+
+Os programas que executarem todas as suas rajadas serão removidos da lista encadeada.
+Esse processo repetirá enquanto houver elementos na lista encadeada, com exceção da primeira execução da fila 1.
 
 - O programa 'a' sempre terá comportamento I/O bound e sempre estará na fila 1.
 - O programa 'b' poderá apresentar comportamento I/O bound ou CPU bound na fila 1
@@ -168,6 +178,20 @@ processo 6575 terminou
 Fila2:
 Fila3:
 
+-------------------------------------------------------------------------------------
+Análise Crítica:
+-------------------------------------------------------------------------------------
+O escalonamento ocorreu como esperado. 
+O processo 'a' (6572) apresentou sempre comportamento I/O bound e sempre foi executado na fila 1.Esse é o comportamento esperado considerando que todas as suas rajadas tem um tempo menor que o quantum de tempo característico da fila 1.
+O processo 'b' (6574) apresentou comportamento I/O bound em sua primeira rajada e se manteve na fila 1.
+O processo 'b' (6574) apresentou comportamento CPU bound em sua segunda rajada e foi movido para a fila 2.
+O processo 'b' (6574) apresentou comportamento I/0 bound ao executar o restante de tempo de sua segunda rajada na fila 2 e foi movido para a fila 1.
+O processo 'b' (6574) apresentou comportamento I/0 bound em sua terceira rajada e se manteve na fila 1.
+O processo 'b' (6574) apresentou comportamento CPU bound em sua quarta rajada e foi movido para a fila 2.
+O processo 'b' (6574) apresentou comportamento I/0 bound ao executar o restante de tempo de sua quarta rajada na fila 2 e foi movido para a fila 1.
+O processo 'b' (6574) apresentou comportamento I/0 bound ao executar sua ultima rajada na fila 1 e foi encerrado.
+
+O processo 'c' (6575) apresentou comportamento CPU bound no começo de suas rajadas, sendo movido para a fila 2 cada vez que um de suas rajadas era executada do inicio. Ao serem movidas para a fila 2 o tempo restante de cada rajada a ser executada era menor que o quantum da fila 2, portanto ao final de cada rajada se observava um comportamento I/O bound e o processo era movido de volta para a fila 1. Esse comportamento se manteve até o processo ser encerrado.
 
 -------------------------------------------------------------------------------------
 Fontes:
