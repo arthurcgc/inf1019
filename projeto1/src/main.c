@@ -14,6 +14,7 @@
 
 #define quantum 4
 
+
 void executeProgram(Command *c)
 {
     int i = 1;
@@ -23,16 +24,12 @@ void executeProgram(Command *c)
     for(; i < c->time_sequence_tam+1; i++)
     {
         char temp[2];
-        // sprintf(temp, "%d", time_sequence[i-1]);
         my_itoa(c->time_sequence[i-1], temp);
         buffer[i] = (char*)malloc(sizeof(char)*2);
         strcpy(buffer[i], temp);
-        // printf("buffer[%d] = %s\n", i ,buffer[i]);
     }
-    // printf("adding NULL\n\n");
     buffer[i] = (char*)malloc(sizeof(char)*2);
     buffer[i] = NULL;
-    // char *parmList[] = {"program", buffer, NULL};    
     execv("program", buffer);
 }
 
@@ -51,22 +48,18 @@ void firstExecution(Vector *line1, pid_t *fila1,  pid_t *fila2, pid_t *fila3)
     line1->curr = line1->begin;
     for(int i = 0; i < line1->size; i++)
     {
-        //printf("line1 size: %d\n", line1->size);
         pid = fork();
-/*         if(pid == 0)
-            break; */
+
         if(pid == 0)
         {
             *child_pid = getpid();
             //making sure the father doesn't access the wrong child pid
-            // printf("entered child process pid: %d\nExecuting program: %s...\n", getpid(), line1->curr->program_name);
             executeProgram(line1->curr);
         }
         
         if(pid > 0)
         {
             int stopped = 0;
-            // printf("entered father, pid = %d\n", getpid());
             int flag_cont = 0;
             for(int start = 0; start < quantum; start++)
             {
@@ -74,7 +67,6 @@ void firstExecution(Vector *line1, pid_t *fila1,  pid_t *fila2, pid_t *fila3)
                 stopped = waitpid(*child_pid, &status, WUNTRACED|WNOHANG);
                 if(stopped > 0)
                 {
-                    //printf("[I/O BOUND] rajada[%d] chegou ao fim\n\n", line1->curr->itime);
                     printf("processo %d é I/O BOUND\n\n", *child_pid);
                     line1->curr->itime++;
                     if(line1->curr->itime == line1->curr->time_sequence_tam)
@@ -99,12 +91,10 @@ void firstExecution(Vector *line1, pid_t *fila1,  pid_t *fila2, pid_t *fila3)
             if ( line1->curr->itime == line1->curr->time_sequence_tam)
                 pop_curr(line1);
             line1->curr = line1->curr->next;
-            // se só tem uma rajada->pop
         }
     }
     delSemValue(semId);
 }
-
 
 
 int isIO(pid_t pid)
@@ -123,6 +113,7 @@ int isIO(pid_t pid)
     }
     return 0;
 }
+
 
 int rodaFila(pid_t *fila1, pid_t *fila2, pid_t *fila3 , int fila_index, int n_processes)
 {
@@ -217,6 +208,7 @@ int main(int argc, char const *argv[])
     ReadFile(line1);
     printPrograms(line1);
 
+    // creating lines
     pid_t *fila1, *fila2, *fila3;
     fila1 = (pid_t*)malloc(sizeof(pid_t)*line1->size);
     fila2 = (pid_t*)malloc(sizeof(pid_t)*line1->size);
@@ -244,10 +236,3 @@ int main(int argc, char const *argv[])
     return 0;
 }
 
-void printFila(pid_t * fila, int tam)
-{
-    for(int i = 0; i < tam; i++)
-    {
-        printf("pid[%d] = %d\n", i, fila[i]);
-    }
-}

@@ -1,6 +1,6 @@
 #include "vector.h"
 
-/*parsing functions*/
+/*string functions*/
 
 void stripTokens(char *s)
 {
@@ -42,7 +42,7 @@ void parseTimeWindows(int *v, char *s)
     }
 }
 
-/*end of parsing functions*/
+/*end of string functions*/
 
 Command *create_command(char *program_name, char *time_windows)
 {
@@ -154,6 +154,4 @@ void send2back(Vector *v)
     // anterior de a é c
     v->curr->prvs = v->end;
     v->end = v->curr;
-
-
 }

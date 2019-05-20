@@ -1,6 +1,6 @@
 Trabalho 1 de Sistemas da Computação
 Autores: Arthur Cavalcante Gomes Coelho - 1313099
-            Marcos Vinícius Porto de Sá - 1413428
+         Marcos Vinícius Porto de Sá - 1413428
 
 
 -------------------------------------------------------------------------------------
@@ -10,191 +10,195 @@ test_case.txt
 
 exec a (1, 1, 1)
 exec b (2, 5, 3, 5, 1)
-exec c (5, 5, 5, 5)
+exec c (13, 2)
 end
 
 -------------------------------------------------------------------------------------
-Comportamento esperado:
+Comportamento do Escalonador:
 -------------------------------------------------------------------------------------
--O interpretador lê os comandos do arquivo teste_case.txt, e preenche uma fila (vetor) duplamente encadeada com cabeça. Cada elemento dessa lista conterá informações sobre os comandos lidos pelo interpretador, como nome e sequencia de rajadas, e importantes para a execução correta do escalonador, como o pid do processo referente ao programa executado por cada comando.
--Ao iniciar a primeira execução,a lista será percorrida de tal forma que cada elemento da lista significará a execução de um fork, onde cada processo filho executará um programa que recebe como parâmetro as rajadas a serem executadas.
--Os processos serão executados na ordem que se dispẽm na lista (mesma ordem do arquivo). E serão manejadas para a fila 1 ou fila 2 dependendo do comportamento apresentado na primeira execução. Esse processo valerá como uma execução da fila 1. 
--A fila 1 tem seus processos executados mais 3 vezes ou até não possuir mais processos. A execução da fila 2 iniciará em seguida, com o mesmo comportamento da fila 1 a partir da segunda execução. O mesmo valerá para a fila 3, que será executada ao término da fila 2.
--As filas consistem em vetores de pids de tamanho igual a lista encadeada. Que serão preenchidos no decorrer da primeira execução da fila 1,onde a lista encadeada contendo os comandos é percorrida.
--Os espaços vazios nas filas são representados por elementos com valor zero, enquanto os programas em cada fila serão representados pelo pid de seus respectivos processos.
-Ao mover um processo de uma fila pra outra o n-ésimo elemento da fila origem onde seu pid estava regitrado é atribuido com zero e o n-ésimo elemento da fila destino será atribuido com seu respectivo pid.
+1- O interpretador (parser) lê os comandos do arquivo teste_case.txt, e preenche uma lista (vector) duplamente encadeada. Cada elemento representa um comando (Comand) a estrutura de comando guarda informaçÕes como: nome, sequência de rajadas, tamanho do vetor
+de rajadas (que pode se estender até 10).
+2- Uma vez que o parser armazena os comandos na lista duplamente encadeada, o próximo passo se configura em executar os programas,
+criando um processo único para cada programa, todos esses processos devem ser filhos do mesmo pai, o escalonador. A função
+firstExecution realiza essa tarefa e delega os processos, ou seja, armazena seus respectivos pids para suas respectivas filas (fila1,
+fila2, fila3) de acordo com seu comportamento (I/O bound ou CPU bound).
+3- A partir da primeira execução entramos em um loop que se encerra quando todos os processos foram terminados, em cada fila damos
+SIGCONT em seus processos e SIGSTOP caso sejam CPU bound, se o processo for I/O bound ele mesmo se interrompe dando um SIGSTOP para
+ele mesmo, o processo pai checa a cada segundo dentro do quantum de tempo se o processo corrente se interrompeu. A partir desse 
+comportamento mantemos os processos que sejam I/O bound, ou descemos o processo de fila caso seja CPU bound. A única diferença no
+comportamento das filas é o seu número de iterações, a fila1 é executada quatro vezes, a fila2 duas vezes e a fila3 uma vez,
+representando uma hierarquia de prioridade entre as filas.
 
-Os programas que executarem todas as suas rajadas serão removidos da lista encadeada.
-Esse processo repetirá enquanto houver elementos na lista encadeada, com exceção da primeira execução da fila 1.
+Observação: todas as filas possuem o mesmo tamanho; o número total de processos criados, pelo fato de que uma fila pode armazenar
+todos os processos em um dado tempo.
 
+-------------------------------------------------------------------------------------
+Análise Inicial do comportamento esperado dos processos
+quantum = 4
+-------------------------------------------------------------------------------------
 - O programa 'a' sempre terá comportamento I/O bound e sempre estará na fila 1.
-- O programa 'b' poderá apresentar comportamento I/O bound ou CPU bound na fila 1
-- O programa 'b' sempre apresentará comportamento I/0 bound na fila 2
-- O programa 'c' sempre apresentará comportamento CPU bound na fila 1
-- O programa 'd' sempre apresentará comportamento I/O bound na fila 2 
+- O programa 'b' apresentará comportamento I/O bound durante seu primeiro loop, porém intercala entre CPU Bound e I/O Bound nas
+ rajadas posteriores.
+- O programa 'c' apresentará comportamento CPU bound na três primeiras execuções mas vale ressaltar que será interrompido antes do
+final de seu primeiro loop (3x4 = 12 / 13 - 12 = 1), portanto em um dado momento na fila3 ele deve subir para a fila2 para terminar
+seu primeiro loop.
 
 -------------------------------------------------------------------------------------
 Execução:
 -------------------------------------------------------------------------------------
-$ ./compile.sh
+$ ./compile.sh // compila program.c e main.c
 $ ./main
 
 a (1, 1, 1)
 b (2, 5, 3, 5, 1)
-c (5, 5, 5, 5)
+c (13, 2)
 
-6572
+5085
 enviando sinais
-processo 6572 é I/O BOUND
+processo 5085 é I/O BOUND
 
-6574
-6574
+5086
+5086
 enviando sinais
-processo 6574 é I/O BOUND
+processo 5086 é I/O BOUND
 
-6575
-6575
-6575
-6575
-processo 6575 é CPU BOUND
+5087
+5087
+5087
+5087
+processo 5087 é CPU BOUND
 
 ___________END OF FIRST EXECUTION____________
 
 Fila1:
-6572
+5085
 enviando sinais
-processo 6572 é I/O BOUND
-processo 6572 continua na fila1
+processo 5085 é I/O BOUND
+processo 5085 continua na fila1
 
-6574
-6574
-6574
-6574
-processo 6574 é CPU BOUND
-Descendo processo 6574 para fila2
+5086
+5086
+5086
+5086
+processo 5086 é CPU BOUND
+Descendo processo 5086 para fila2
 
-6572
+5085
 enviando sinais
-processo 6572 é I/O BOUND
-processo 6572 continua na fila1
+processo 5085 é I/O BOUND
+processo 5085 continua na fila1
 
-processo 6572 é I/O BOUND
-processo 6572 continua na fila1
+processo 5085 é I/O BOUND
+processo 5085 continua na fila1
 
-processo 6572 terminou
+processo 5085 terminou
 
 Fila2:
-6574
+5086
 enviando sinais
-processo 6574 é I/O BOUND
-processo 6574 subiu para fila1
+processo 5086 é I/O BOUND
+processo 5086 subiu para fila1
 
-6575
+5087
+5087
+5087
+5087
+processo 5087 é CPU BOUND
+Descendo processo 5087 para fila3
+
+Fila3:
+5087
+5087
+5087
+5087
+processo 5087 é CPU BOUND
+processo 5087 continua na fila3
+
+Fila1:
+5086
+5086
+5086
 enviando sinais
-processo 6575 é I/O BOUND
-processo 6575 subiu para fila1
+processo 5086 é I/O BOUND
+processo 5086 continua na fila1
+
+5086
+5086
+5086
+5086
+processo 5086 é CPU BOUND
+Descendo processo 5086 para fila2
+
+Fila2:
+5086
+enviando sinais
+processo 5086 é I/O BOUND
+processo 5086 subiu para fila1
+
+Fila3:
+5087
+enviando sinais
+processo 5087 é I/O BOUND
+processo 5087 subiu para fila2
+
+Fila1:
+5086
+enviando sinais
+processo 5086 é I/O BOUND
+processo 5086 continua na fila1
+
+processo 5086 é I/O BOUND
+processo 5086 continua na fila1
+
+processo 5086 terminou
+
+Fila2:
+5087
+5087
+enviando sinais
+processo 5087 é I/O BOUND
+processo 5087 subiu para fila1
 
 Fila3:
 Fila1:
-6574
-6574
-6574
-enviando sinais
-processo 6574 é I/O BOUND
-processo 6574 continua na fila1
+processo 5087 é I/O BOUND
+processo 5087 continua na fila1
 
-6575
-6575
-6575
-6575
-processo 6575 é CPU BOUND
-Descendo processo 6575 para fila2
-
-6574
-6574
-6574
-6574
-processo 6574 é CPU BOUND
-Descendo processo 6574 para fila2
-
-Fila2:
-6574
-enviando sinais
-processo 6574 é I/O BOUND
-processo 6574 subiu para fila1
-
-6575
-enviando sinais
-processo 6575 é I/O BOUND
-processo 6575 subiu para fila1
-
-Fila3:
-Fila1:
-6574
-enviando sinais
-processo 6574 é I/O BOUND
-processo 6574 continua na fila1
-
-6575
-6575
-6575
-6575
-processo 6575 é CPU BOUND
-Descendo processo 6575 para fila2
-
-processo 6574 é I/O BOUND
-processo 6574 continua na fila1
-
-processo 6574 terminou
-
-Fila2:
-6575
-enviando sinais
-processo 6575 é I/O BOUND
-processo 6575 subiu para fila1
-
-Fila3:
-Fila1:
-6575
-6575
-6575
-6575
-processo 6575 é CPU BOUND
-Descendo processo 6575 para fila2
-
-Fila2:
-6575
-enviando sinais
-processo 6575 é I/O BOUND
-processo 6575 subiu para fila1
-
-Fila3:
-Fila1:
-processo 6575 é I/O BOUND
-processo 6575 continua na fila1
-
-processo 6575 terminou
+processo 5087 terminou
 
 Fila2:
 Fila3:
-
 -------------------------------------------------------------------------------------
 Análise Crítica:
 -------------------------------------------------------------------------------------
 O escalonamento ocorreu como esperado. 
-O processo 'a' (6572) apresentou sempre comportamento I/O bound e sempre foi executado na fila 1.Esse é o comportamento esperado considerando que todas as suas rajadas tem um tempo menor que o quantum de tempo característico da fila 1.
-O processo 'b' (6574) apresentou comportamento I/O bound em sua primeira rajada e se manteve na fila 1.
-O processo 'b' (6574) apresentou comportamento CPU bound em sua segunda rajada e foi movido para a fila 2.
-O processo 'b' (6574) apresentou comportamento I/0 bound ao executar o restante de tempo de sua segunda rajada na fila 2 e foi movido para a fila 1.
-O processo 'b' (6574) apresentou comportamento I/0 bound em sua terceira rajada e se manteve na fila 1.
-O processo 'b' (6574) apresentou comportamento CPU bound em sua quarta rajada e foi movido para a fila 2.
-O processo 'b' (6574) apresentou comportamento I/0 bound ao executar o restante de tempo de sua quarta rajada na fila 2 e foi movido para a fila 1.
-O processo 'b' (6574) apresentou comportamento I/0 bound ao executar sua ultima rajada na fila 1 e foi encerrado.
+Processo a:
+    O processo 'a' (5085) apresentou sempre comportamento I/O bound e sempre foi executado na fila 1.Esse é o comportamento esperado considerando que todas as suas rajadas tem um tempo menor que o quantum de tempo característico da fila 1.
 
-O processo 'c' (6575) apresentou comportamento CPU bound no começo de suas rajadas, sendo movido para a fila 2 cada vez que um de suas rajadas era executada do inicio. Ao serem movidas para a fila 2 o tempo restante de cada rajada a ser executada era menor que o quantum da fila 2, portanto ao final de cada rajada se observava um comportamento I/O bound e o processo era movido de volta para a fila 1. Esse comportamento se manteve até o processo ser encerrado.
-
+Processo b:
+    O processo 'b' (5086) apresentou comportamento I/O bound em sua primeira rajada e se manteve na fila 1.
+    O processo 'b' (5086) apresentou comportamento CPU bound em sua segunda rajada e foi movido para a fila2.
+    O processo 'b' (5086) apresentou comportamento I/0 bound ao executar o restante de tempo de sua segunda rajada na fila2 e foi
+    movido para a fila1.
+    O processo 'b' (5086) apresentou comportamento I/0 bound em sua terceira rajada e se manteve na fila 1.
+    O processo 'b' (5086) apresentou comportamento CPU bound em sua quarta rajada e foi movido para a fila 2.
+    O processo 'b' (5086) apresentou comportamento I/0 bound ao executar o restante de tempo de sua quarta rajada na fila 2 e foi
+    movido para a fila 1.
+    O processo 'b' (5086) apresentou comportamento I/0 bound ao executar sua ultima rajada na fila 1 e foi encerrado.
+    
+Processo c:
+    O processo 'c' (5087) apresentou comportamento CPU bound durante a execução da primeira rajada em sua maior parte, porém como o
+    quantum é de 4, o processo c foi sempre interrompido antes de executar sua rajada, mais precisamente, foi interrompido 3 vezes,
+    na quarta em que é continuado existe um "resíduo" de sua execução que totaliza 1 segundo, o que representa um comportamento I/O
+    bound no fim de sua primeira rajada, o que o faz subir para a fila2.
+    Na fila2 o processo 'c' (5087) executa sua segunda rajada que é menor que o quantum portanto; I/O bound e sobe pra fila1. 
+    O único processo restante é o processo 'c' (5087), logo a fila 3 não tem pids para dar SIGCONT.
+    Na fila1 o processo ainda existente é o processo 'c' que foi interrompido na sua última interação, como ele ainda não foi
+    terminado pelo sistema operacional, o escalonador identifica um comportamento I/O bound. 
+    Ainda na fila1, o processo 'c' foi finalmente terminado (terminated). Com isso todos os processos foram terminados e o loop se
+    encerra.
 -------------------------------------------------------------------------------------
-Fontes:
+Arquivos Fonte:
 -------------------------------------------------------------------------------------
 1- Interpretador
 -------------------------------------------------------------------------------------
@@ -209,13 +213,16 @@ parser.h
 #define line_cap 256
 #define command_cap 50
 
-char *my_itoa(int num, char *str);
-
+// imprime os programas armazenados em Vector *v
 void printPrograms(Vector *v);
 
+// lê comandos de stdin, contanto que as rajadas sejam char
 void ReadCommands(Vector *programs);
 
+// lê comandos de test_case.txt -> utilizada na main
 void ReadFile(Vector *programs);
+
+char *my_itoa(int num, char *str);
 
 -------------------------------------------------------------------------------------
 parser.c 
@@ -303,6 +310,7 @@ void ReadFile(Vector *programs)
         printf("Não existe arquivo de teste\n");
         exit(0);
     }
+
     for(int i = 0; i < command_cap; i++)
     {
         getline(&line, &cap, fp);
@@ -353,18 +361,22 @@ struct command
 };
 
 Command *create_command(char *program_name, char *time_windows);
-void push_back(Vector *v, Command *c);
-Vector *create_vector(int index);
-int size(Vector *v);
-Command *pop_curr(Vector *v);
-void send2back(Vector *v);
 
+void push_back(Vector *v, Command *c);
+
+Vector *create_vector(int index);
+
+int size(Vector *v);
+
+Command *pop_curr(Vector *v);
+
+void send2back(Vector *v);
 -------------------------------------------------------------------------------------
 vector.c
 
 #include "vector.h"
 
-/*parsing functions*/
+/*string functions*/
 
 void stripTokens(char *s)
 {
@@ -406,7 +418,7 @@ void parseTimeWindows(int *v, char *s)
     }
 }
 
-/*end of parsing functions*/
+/*end of string functions*/
 
 Command *create_command(char *program_name, char *time_windows)
 {
@@ -420,10 +432,13 @@ Command *create_command(char *program_name, char *time_windows)
         if(c->time_sequence[i] == 0)
             break;
     }
+
     c->time_sequence_tam = i;
+
     c->itime = 0;
     c->next = NULL;
     c->prvs = NULL;
+
     return c;
 
 }
@@ -516,36 +531,7 @@ void send2back(Vector *v)
     v->curr->prvs = v->end;
     v->end = v->curr;
 }
--------------------------------------------------------------------------------------
-3- Programa
--------------------------------------------------------------------------------------
-program.c
 
-#include <sys/types.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <signal.h>
-#include <string.h>
-
-int main(int argc, char const *argv[])
-{
-    int time;
-    for(int i = 1;i < argc; i++)
-    {
-        sscanf(argv[i], "%d", &time);
-        for(int j = 0; j < time; j++)
-        {
-            printf("%d\n", getpid());
-            sleep(1);
-        }
-        printf("enviando sinais\n");
-        kill(getpid(), SIGSTOP);
-    }
-    exit(0);
-
-    return 0;
-}
 -------------------------------------------------------------------------------------
 4- Escalonador
 -------------------------------------------------------------------------------------
@@ -567,6 +553,7 @@ main.c
 
 #define quantum 4
 
+
 void executeProgram(Command *c)
 {
     int i = 1;
@@ -576,16 +563,12 @@ void executeProgram(Command *c)
     for(; i < c->time_sequence_tam+1; i++)
     {
         char temp[2];
-        // sprintf(temp, "%d", time_sequence[i-1]);
         my_itoa(c->time_sequence[i-1], temp);
         buffer[i] = (char*)malloc(sizeof(char)*2);
         strcpy(buffer[i], temp);
-        // printf("buffer[%d] = %s\n", i ,buffer[i]);
     }
-    // printf("adding NULL\n\n");
     buffer[i] = (char*)malloc(sizeof(char)*2);
     buffer[i] = NULL;
-    // char *parmList[] = {"program", buffer, NULL};    
     execv("program", buffer);
 }
 
@@ -604,22 +587,18 @@ void firstExecution(Vector *line1, pid_t *fila1,  pid_t *fila2, pid_t *fila3)
     line1->curr = line1->begin;
     for(int i = 0; i < line1->size; i++)
     {
-        //printf("line1 size: %d\n", line1->size);
         pid = fork();
-/*         if(pid == 0)
-            break; */
+
         if(pid == 0)
         {
             *child_pid = getpid();
             //making sure the father doesn't access the wrong child pid
-            // printf("entered child process pid: %d\nExecuting program: %s...\n", getpid(), line1->curr->program_name);
             executeProgram(line1->curr);
         }
         
         if(pid > 0)
         {
             int stopped = 0;
-            // printf("entered father, pid = %d\n", getpid());
             int flag_cont = 0;
             for(int start = 0; start < quantum; start++)
             {
@@ -627,7 +606,6 @@ void firstExecution(Vector *line1, pid_t *fila1,  pid_t *fila2, pid_t *fila3)
                 stopped = waitpid(*child_pid, &status, WUNTRACED|WNOHANG);
                 if(stopped > 0)
                 {
-                    //printf("[I/O BOUND] rajada[%d] chegou ao fim\n\n", line1->curr->itime);
                     printf("processo %d é I/O BOUND\n\n", *child_pid);
                     line1->curr->itime++;
                     if(line1->curr->itime == line1->curr->time_sequence_tam)
@@ -652,12 +630,10 @@ void firstExecution(Vector *line1, pid_t *fila1,  pid_t *fila2, pid_t *fila3)
             if ( line1->curr->itime == line1->curr->time_sequence_tam)
                 pop_curr(line1);
             line1->curr = line1->curr->next;
-            // se só tem uma rajada->pop
         }
     }
     delSemValue(semId);
 }
-
 
 
 int isIO(pid_t pid)
@@ -676,6 +652,7 @@ int isIO(pid_t pid)
     }
     return 0;
 }
+
 
 int rodaFila(pid_t *fila1, pid_t *fila2, pid_t *fila3 , int fila_index, int n_processes)
 {
@@ -770,6 +747,7 @@ int main(int argc, char const *argv[])
     ReadFile(line1);
     printPrograms(line1);
 
+    // creating lines
     pid_t *fila1, *fila2, *fila3;
     fila1 = (pid_t*)malloc(sizeof(pid_t)*line1->size);
     fila2 = (pid_t*)malloc(sizeof(pid_t)*line1->size);
@@ -795,13 +773,5 @@ int main(int argc, char const *argv[])
     }
 
     return 0;
-}
-
-void printFila(pid_t * fila, int tam)
-{
-    for(int i = 0; i < tam; i++)
-    {
-        printf("pid[%d] = %d\n", i, fila[i]);
-    }
 }
 -------------------------------------------------------------------------------------
