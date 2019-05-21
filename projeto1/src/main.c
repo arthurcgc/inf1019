@@ -4,12 +4,14 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
-#include <time.h>
 #include <sys/types.h> 
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <sys/time.h>
+#include <sys/stat.h>
 #include <errno.h>
 #include <sys/wait.h>
 #include "vector.h"
-#include "semaforo.h"
 #include "parser.h"
 
 #define quantum 4
@@ -42,9 +44,8 @@ void firstExecution(Vector *line1, pid_t *fila1,  pid_t *fila2, pid_t *fila3)
     segment = shmget(IPC_PRIVATE, sizeof(int), IPC_CREAT | IPC_EXCL | S_IRUSR | S_IWUSR);
     // associa a memória compartilhada ao processo
     child_pid = (int*)shmat(segment, 0, 0); // comparar o retorno com -1
-    semId = semget(IPC_PRIVATE, 1, 0666 | IPC_CREAT);
-    setSemValue(semId);
-        // initializing line head
+    
+    // initializing line head
     line1->curr = line1->begin;
     for(int i = 0; i < line1->size; i++)
     {
@@ -93,7 +94,10 @@ void firstExecution(Vector *line1, pid_t *fila1,  pid_t *fila2, pid_t *fila3)
             line1->curr = line1->curr->next;
         }
     }
-    delSemValue(semId);
+     // libera a memória compartilhada do processo
+    shmdt(child_pid);
+    // libera a memória compartilhada
+    int i = shmctl(segment, IPC_RMID, 0);
 }
 
 
