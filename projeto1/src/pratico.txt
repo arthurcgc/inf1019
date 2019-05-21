@@ -35,7 +35,7 @@ Prog4:
     Na primeira execução prog4 é I/O bound. Se mantém na fila1. Na segunda execução prog4 continua I/O Bound. Continua na fila1.
     Na terceira execução prog4 tem rajada 4, logo executará 3 vezes e será interrompido por ser CPU Bound. Desce para fila2. Na 
     fila2, prog4 executa a última iteração da terceira rajada e sobe para fila1 por ser I/O Bound. Na fila1, prog4 executa sua 
-    útlima rajada mas será interrompido antes de terminar e desce para fila2. Na fila2 ele não tem mais nada a executar, o processo
+    última rajada mas será interrompido antes de terminar e desce para fila2. Na fila2 ele não tem mais nada a executar, o processo
     irá subir para a fila1 onde será configurado o seu término.
 ___________________________________
 
@@ -219,4 +219,10 @@ ___________________________________
 
 5 - Conclusão
 ___________________________________
+
+O resultado prático da execução do teste condiz com o esperado no resultado teórico. O programa funcionou de acordo com a política de escalonamento estipulada pela dupla, considerando quantum igual a 3.
+Prog1 de fato apresentou comportamento I/O bound em todas as rajadas e foi executado sempre na fila 1.
+Prog2 apresentou comportamento CPU bound na primeira rajada e comportamento I/O bound nas demais, sendo executado tanto na fila 1 quanto na fila 2.
+Prog3 teve comportamento CPU bound em ambas as rajadas, e em determinado momento alcançando a fila 3 (menor prioridade).
+Prog4 apresentou nas duas rajadas iniciais comportamento I/O bound, ambas,portanto, sendo executadas na fila 1. E nas duas rajadas finais, prog4 apresenta comportamento CPU bound alcançando a fila 2.
 
