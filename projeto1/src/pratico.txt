@@ -1,0 +1,222 @@
+1 - Arthur Cavalcante Gomes Coelho -1313099
+1 - Marcos Vinicius Porto de Sá - 1413428
+
+______________________________________
+
+2 - Simulação:
+______________________________________
+exec prog1 (1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
+exec prog2 (3, 2, 2, 2)
+exec prog3 (7, 4)
+exec prog4 (1, 2, 4, 3)
+end
+______________________________________
+
+3 - Resultado Teórico
+______________________________________
+
+Prog1:
+    Sempre terá comportamento I/O bound, logo, sempre será executado quando a fila1 for executada até o seu término.
+Prog2:
+    A primeira rajada apresenta comportamento CPU Bound, pois sua rajada é de 3 e nosso quantum é de 3 e pela nossa filosofia 
+    de parada o escalonador acaba interrompendo o prog2 antes de ele enviar o sinal de parada. Prog2 desce para a Fila2. Na fila2, 
+    prog2 envia o sinal de parada que foi interrompido na fila1. Prog2 sobre para fila1. Como a primeira rajada foi completa e as 
+    rajadas subsequentes de prog2 são menores do que o quantum, prog2 se mantém na fila1 até seu término.
+
+Prog3:
+    Na primeira execução, prog3 apresentará comportamento CPU Bound, logo desce para fila2. Na fila 2, prog3 continua a execução
+    da primeira rajada (7-3 = 4), como o quantum é de 3 e o resíduo da rajada é de 4, prog2 apresenta comportamento CPU Bound,
+    desce pra fila 3 (restando 1 tempo de execução). Na fila3 prog2 executa a última iteração da primeira rajada e configura
+    comportamento I/O Bound. Prog3 sobe para fila2. Na fila2 prog3 executa sua segunda rajada até o quantum de 3, configurando 
+    comportamento CPU Bound. Prog3 desce para fila3 novamente. Na fila3 prog3 executa a última iteração restante da rajada e 
+    finaliza sua execução.
+
+Prog4:
+    Na primeira execução prog4 é I/O bound. Se mantém na fila1. Na segunda execução prog4 continua I/O Bound. Continua na fila1.
+    Na terceira execução prog4 tem rajada 4, logo executará 3 vezes e será interrompido por ser CPU Bound. Desce para fila2. Na 
+    fila2, prog4 executa a última iteração da terceira rajada e sobe para fila1 por ser I/O Bound. Na fila1, prog4 executa sua 
+    útlima rajada mas será interrompido antes de terminar e desce para fila2. Na fila2 ele não tem mais nada a executar, o processo
+    irá subir para a fila1 onde será configurado o seu término.
+___________________________________
+
+4 - Resultado Prático
+___________________________________
+prog1 (1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
+prog2 (3, 2, 2, 2)
+prog3 (7, 4)
+prog4 (1, 2, 4, 3)
+
+QUANTUM = 3
+
+-------------Fila1-------------
+prog1 - pid: 5886 - rajada[1] - tempo restante da rajada: 1
+enviando sinais
+processo 5886 é I/O BOUND
+
+prog2 - pid: 5891 - rajada[1] - tempo restante da rajada: 3
+prog2 - pid: 5891 - rajada[1] - tempo restante da rajada: 2
+prog2 - pid: 5891 - rajada[1] - tempo restante da rajada: 1
+processo 5891 é CPU BOUND
+
+prog3 - pid: 5893 - rajada[1] - tempo restante da rajada: 7
+prog3 - pid: 5893 - rajada[1] - tempo restante da rajada: 6
+prog3 - pid: 5893 - rajada[1] - tempo restante da rajada: 5
+processo 5893 é CPU BOUND
+
+prog4 - pid: 5894 - rajada[1] - tempo restante da rajada: 1
+enviando sinais
+processo 5894 é I/O BOUND
+
+-------------Fila1-------------
+prog1 - pid: 5886 - rajada[2] - tempo restante da rajada: 1
+enviando sinais
+processo 5886 é I/O BOUND
+processo 5886 continua na fila1
+
+prog4 - pid: 5894 - rajada[2] - tempo restante da rajada: 2
+prog4 - pid: 5894 - rajada[2] - tempo restante da rajada: 1
+enviando sinais
+processo 5894 é I/O BOUND
+processo 5894 continua na fila1
+
+prog1 - pid: 5886 - rajada[3] - tempo restante da rajada: 1
+enviando sinais
+processo 5886 é I/O BOUND
+processo 5886 continua na fila1
+
+prog4 - pid: 5894 - rajada[3] - tempo restante da rajada: 4
+prog4 - pid: 5894 - rajada[3] - tempo restante da rajada: 3
+prog4 - pid: 5894 - rajada[3] - tempo restante da rajada: 2
+processo 5894 é CPU BOUND
+Descendo processo 5894 para fila2
+
+prog1 - pid: 5886 - rajada[4] - tempo restante da rajada: 1
+enviando sinais
+processo 5886 é I/O BOUND
+processo 5886 continua na fila1
+
+prog1 - pid: 5886 - rajada[5] - tempo restante da rajada: 1
+enviando sinais
+processo 5886 é I/O BOUND
+processo 5886 continua na fila1
+
+------------Fila2--------------
+enviando sinais
+processo 5891 é I/O BOUND
+processo 5891 subiu para fila1
+
+prog3 - pid: 5893 - rajada[1] - tempo restante da rajada: 4
+prog3 - pid: 5893 - rajada[1] - tempo restante da rajada: 3
+prog3 - pid: 5893 - rajada[1] - tempo restante da rajada: 2
+processo 5893 é CPU BOUND
+Descendo processo 5893 para fila3
+
+prog4 - pid: 5894 - rajada[3] - tempo restante da rajada: 1
+enviando sinais
+processo 5894 é I/O BOUND
+processo 5894 subiu para fila1
+
+------------Fila3--------------
+prog3 - pid: 5893 - rajada[1] - tempo restante da rajada: 1
+enviando sinais
+processo 5893 é I/O BOUND
+processo 5893 subiu para fila2
+
+-------------Fila1-------------
+prog1 - pid: 5886 - rajada[6] - tempo restante da rajada: 1
+enviando sinais
+processo 5886 é I/O BOUND
+processo 5886 continua na fila1
+
+prog2 - pid: 5891 - rajada[2] - tempo restante da rajada: 2
+prog2 - pid: 5891 - rajada[2] - tempo restante da rajada: 1
+enviando sinais
+processo 5891 é I/O BOUND
+processo 5891 continua na fila1
+
+prog4 - pid: 5894 - rajada[4] - tempo restante da rajada: 3
+prog4 - pid: 5894 - rajada[4] - tempo restante da rajada: 2
+prog4 - pid: 5894 - rajada[4] - tempo restante da rajada: 1
+processo 5894 é CPU BOUND
+Descendo processo 5894 para fila2
+
+prog1 - pid: 5886 - rajada[7] - tempo restante da rajada: 1
+enviando sinais
+processo 5886 é I/O BOUND
+processo 5886 continua na fila1
+
+prog2 - pid: 5891 - rajada[3] - tempo restante da rajada: 2
+prog2 - pid: 5891 - rajada[3] - tempo restante da rajada: 1
+enviando sinais
+processo 5891 é I/O BOUND
+processo 5891 continua na fila1
+
+prog1 - pid: 5886 - rajada[8] - tempo restante da rajada: 1
+enviando sinais
+processo 5886 é I/O BOUND
+processo 5886 continua na fila1
+
+prog2 - pid: 5891 - rajada[4] - tempo restante da rajada: 2
+prog2 - pid: 5891 - rajada[4] - tempo restante da rajada: 1
+enviando sinais
+processo 5891 é I/O BOUND
+processo 5891 continua na fila1
+
+prog1 - pid: 5886 - rajada[9] - tempo restante da rajada: 1
+enviando sinais
+processo 5886 é I/O BOUND
+processo 5886 continua na fila1
+
+processo 5891 é I/O BOUND
+processo 5891 continua na fila1
+
+------------Fila2--------------
+prog3 - pid: 5893 - rajada[2] - tempo restante da rajada: 4
+prog3 - pid: 5893 - rajada[2] - tempo restante da rajada: 3
+prog3 - pid: 5893 - rajada[2] - tempo restante da rajada: 2
+processo 5893 é CPU BOUND
+Descendo processo 5893 para fila3
+
+enviando sinais
+processo 5894 é I/O BOUND
+processo 5894 subiu para fila1
+
+------------Fila3--------------
+prog3 - pid: 5893 - rajada[2] - tempo restante da rajada: 1
+enviando sinais
+processo 5893 é I/O BOUND
+processo 5893 subiu para fila2
+
+-------------Fila1-------------
+prog1 - pid: 5886 - rajada[10] - tempo restante da rajada: 1
+enviando sinais
+processo 5886 é I/O BOUND
+processo 5886 continua na fila1
+
+processo 5891 terminou
+
+processo 5894 é I/O BOUND
+processo 5894 continua na fila1
+
+processo 5886 é I/O BOUND
+processo 5886 continua na fila1
+
+processo 5894 terminou
+
+processo 5886 terminou
+
+------------Fila2--------------
+processo 5893 é I/O BOUND
+processo 5893 subiu para fila1
+
+------------Fila3--------------
+-------------Fila1-------------
+processo 5893 terminou
+
+------------Fila2--------------
+------------Fila3--------------
+___________________________________
+
+5 - Conclusão
+___________________________________
+

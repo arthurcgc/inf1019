@@ -14,14 +14,14 @@
 #include "vector.h"
 #include "parser.h"
 
-#define quantum 4
+#define quantum 3
 
 
 void executeProgram(Command *c)
 {
     int i = 1;
     pid_t pid;
-    char *buffer[c->time_sequence_tam+2];
+    char *buffer[c->time_sequence_tam+3];
     buffer[0] = "program";
     for(; i < c->time_sequence_tam+1; i++)
     {
@@ -30,8 +30,10 @@ void executeProgram(Command *c)
         buffer[i] = (char*)malloc(sizeof(char)*2);
         strcpy(buffer[i], temp);
     }
-    buffer[i] = (char*)malloc(sizeof(char)*2);
-    buffer[i] = NULL;
+    buffer[i] = (char*)malloc(sizeof(char)*256);
+    strcpy(buffer[i], c->program_name);
+    buffer[i+1] = (char*)malloc(sizeof(char)*2);
+    buffer[i+1] = NULL;
     execv("program", buffer);
 }
 
@@ -218,8 +220,8 @@ int main(int argc, char const *argv[])
     fila2 = (pid_t*)malloc(sizeof(pid_t)*line1->size);
     fila3 = (pid_t*)malloc(sizeof(pid_t)*line1->size);
 
+    printf("-------------Fila1-------------\n");
     firstExecution(line1, fila1, fila2, fila3);
-    printf("___________END OF FIRST EXECUTION____________\n\n");
 
 
     // percorre a fila1 tres vezes
@@ -227,13 +229,13 @@ int main(int argc, char const *argv[])
     while(count_terminated < line1->size)
     {
         // é 3 por causa da primeira execução
-        printf("Fila1:\n");
+        printf("-------------Fila1-------------\n");
         for(int i = 0; i < 4; i++)
             count_terminated += rodaFila(fila1, fila2, fila3, 1, line1->size);
-        printf("Fila2:\n");
+        printf("------------Fila2--------------\n");
         for(int i = 0; i < 2; i++)
             count_terminated += rodaFila(fila1, fila2, fila3, 2, line1->size);
-        printf("Fila3:\n");
+        printf("------------Fila3--------------\n");
         count_terminated += rodaFila(fila1, fila2, fila3, 3, line1->size);
     }
 

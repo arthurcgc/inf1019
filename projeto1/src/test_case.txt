@@ -1,4 +1,5 @@
-exec a (1, 1, 1)
-exec b (2, 5, 3, 5, 1)
-exec c (13, 2)
+exec prog1 (1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
+exec prog2 (3, 2, 2, 2)
+exec prog3 (7, 4)
+exec prog4 (1, 2, 4, 3)
 end
